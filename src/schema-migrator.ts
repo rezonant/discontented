@@ -208,12 +208,16 @@ export class BatchImporter {
                     + `    ${Array.from(row.data.entries()).map(([ key, value ]) => this.context.serializeValue(value)).join(`,\n    `)}\n`
                     + `  )`)}`
                     + `\n`
-                    + `  ON CONFLICT (cfid)\n`
-                    + `  DO UPDATE SET\n`
+                    + `  ON CONFLICT (${exemplarRow.uniqueKey})\n`
+                    + `  DO\n` 
+                    + (exemplarRow.onConflict === 'update' ?
+                      `    UPDATE SET\n`
                     + `    ${keys
                                 .filter(x => x !== 'cfid')
                                 .map(key => `"${key}" = EXCLUDED."${key}"`)
                                 .join(`,\n    `)}\n`
+                    : `    NOTHING`
+                    )
                 );
 
             }
