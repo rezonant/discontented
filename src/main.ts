@@ -18,7 +18,7 @@ async function getSchema(context : Context) {
             ...context.credentials
         });
 
-        fs.writeFileSync('contentful-schema.json', JSON.stringify(result));
+        fs.writeFileSync('data/contentful-schema.json', JSON.stringify(result));
 
     } catch (e) {
         console.error(`Caught error while exporting from Contentful: ${e}`);
@@ -38,7 +38,7 @@ async function fullExport(context : Context) {
             ...context.credentials
         });
 
-        fs.writeFileSync('demo-content.json', JSON.stringify(result));
+        fs.writeFileSync('data/demo-content.json', JSON.stringify(result));
 
     } catch (e) {
         console.error(`Caught error while exporting from Contentful: ${e}`);
@@ -53,14 +53,14 @@ async function generateSchema(context : Context) {
     console.log(`Generating SQL schema...`);
     let sql = await migrator.createSchema();
 
-    fs.writeFileSync('schema.sql', sql);
+    fs.writeFileSync('data/schema.sql', sql);
 }
 
 async function doBatchImport(context : Context) {
-    let store = await cfReadStore('demo-content.json');
+    let store = await cfReadStore('data/demo-content.json');
     let importer = new BatchImporter(context, store);
 
-    fs.writeFileSync('batch-update.sql', importer.generateBatchSql().join("\n;\n\n"));
+    fs.writeFileSync('data/batch-update.sql', importer.generateBatchSql().join("\n;\n\n"));
 }
 
 async function main() {

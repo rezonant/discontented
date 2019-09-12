@@ -65,6 +65,26 @@ export class Context {
         return this._credentials;
     }
 
+    serializeValue(value : any, quoteChar = `'`) : string {
+        if (typeof value === 'string') {
+            return `${quoteChar}${value.replace(
+                            new RegExp(quoteChar, 'g'), `${quoteChar}${quoteChar}`
+                        )}${quoteChar}`;
+        } else if (typeof value === 'number') {
+            return `${value}`;
+        } else if (typeof value === 'boolean') {
+            return value ? 'true' : 'false';
+        } else if (value instanceof Date) {
+            return value.toISOString();
+        } else if (value instanceof Array || value.length !== undefined) {
+            let array = Array.from(<any[]>value);
+
+            return this.serializeValue(`{${array.map(x => this.serializeValue(x, `"`)).join(', ')}}`);
+        } else {
+            throw new Error(`Could not serialize value: ${JSON.stringify(value)}`);
+        }
+    }
+
     pluralize(name : string) {
         if (this.definition.pluralize)
             return this.definition.pluralize(name);
@@ -125,38 +145,89 @@ export class BatchImporter {
         readonly context : Context,
         readonly source : CfStore
     ) {
+        this.entryImporter = new EntryImporter(context, source);
+    }
+
+    entryImporter : EntryImporter;
+
+    data : Map<string, RowUpdate[]>;
+
+    addRows(tableName, rowsToAdd : RowUpdate[]) {
+        let rows : RowUpdate[];
+        if (!this.data.has(tableName)) {
+            rows = [];
+            this.data.set(tableName, rows);
+        } else {
+            rows = this.data.get(tableName);
+        }
+
+        rows.push(...rowsToAdd);
+    }
+
+    generateForEntry(entry : CfEntry) {
+        this.entryImporter.generateData(entry);
+
+        for (let tableName of this.entryImporter.data.keys()) 
+            this.addRows(tableName, this.entryImporter.data.get(tableName));
+
+        let tableName = this.context.getTableNameForEntry(entry);
+        let sqlStatements : string[] = [];
     }
 
     generateBatchSql() {
-
-        // Sort the entries into buckets by type 
-
-        let entriesByType = new Map<string, CfEntry[]>();
-        for (let entry of this.source.entries) {
-            let typeEntries : CfEntry[];
-            let contentTypeId = entry.sys.contentType.sys.id;
-
-            if (entriesByType.has(contentTypeId)) {
-                typeEntries = entriesByType.get(contentTypeId);
-            } else {
-                typeEntries = [];
-                entriesByType.set(contentTypeId, typeEntries);
-            }
-
-            typeEntries.push(entry);
-        }
-
-        let importer = new EntryImporter(this.context, this.source);
         let sql : string[] = [];
 
-        for (let [ typeId, entries ] of entriesByType.entries()) {
-            for (let entry of entries) {
-                sql.push(...importer.generateUpsertSql(entry));
+        this.data = new Map<string, RowUpdate[]>();
+
+        for (let entry of this.source.entries)
+            this.generateForEntry(entry);
+        
+        for (let tableName of this.data.keys()) {
+            let rows = this.data.get(tableName);
+            if (rows.length === 0)
+                continue;
+
+            let pageSize = 100; // PRODUCTION: 1000
+            let pagesRequired = Math.ceil(rows.length / pageSize);
+            let exemplarRow = rows[0];
+            let keys = Array.from(exemplarRow.data.keys());
+            
+            for (let page = 0; page < pagesRequired; ++page) {
+                let offset = page * pageSize;
+                let rowsSubset = rows.slice(offset, offset + pageSize);
+
+                sql.push(
+                    `\n`
+                    + `-- *********************************************\n`
+                    + `-- *\n` 
+                    + `-- * ${tableName} [Page ${page + 1} / ${pagesRequired}, Total: ${rows.length}] \n` 
+                    + `-- *\n` 
+                    + `-- **\n` 
+                    + `INSERT INTO ${tableName} (${keys.map(key => `"${key}"`).join(', ')})\n`
+                    + `  VALUES ${rowsSubset.map(row => `(\n`
+                    + `    ${Array.from(row.data.entries()).map(([ key, value ]) => this.context.serializeValue(value)).join(`,\n    `)}\n`
+                    + `  )`)}`
+                    + `\n`
+                    + `  ON CONFLICT (cfid)\n`
+                    + `  DO UPDATE SET\n`
+                    + `    ${keys
+                                .filter(x => x !== 'cfid')
+                                .map(key => `"${key}" = EXCLUDED."${key}"`)
+                                .join(`,\n    `)}\n`
+                );
+
             }
+
         }
 
         return sql;
     }
+}
+
+export interface RowUpdate {
+    onConflict : 'update' | 'nothing';
+    data : Map<string, any>;
+    uniqueKey : string;
 }
 
 export class EntryImporter {
@@ -166,33 +237,26 @@ export class EntryImporter {
     ) {
     }
 
-    serializeValue(value : any, quoteChar = `'`) : string {
-        if (typeof value === 'string') {
-            return `${quoteChar}${value.replace(
-                            new RegExp(quoteChar, 'g'), `${quoteChar}${quoteChar}`
-                        )}${quoteChar}`;
-        } else if (typeof value === 'number') {
-            return `${value}`;
-        } else if (typeof value === 'boolean') {
-            return value ? 'true' : 'false';
-        } else if (value instanceof Date) {
-            return value.toISOString();
-        } else if (value instanceof Array || value.length !== undefined) {
-            let array = Array.from(<any[]>value);
+    data : Map<string, RowUpdate[]>;
 
-            return this.serializeValue(`{${array.map(x => this.serializeValue(x, `"`)).join(', ')}}`);
+    addRow(tableName : string, row : RowUpdate) {
+        let rows : RowUpdate[];
+        if (!this.data.has(tableName)) {
+            rows = [];
+            this.data.set(tableName, rows);
         } else {
-            throw new Error(`Could not serialize value: ${JSON.stringify(value)}`);
+            rows = this.data.get(tableName);
         }
+
+        rows.push(row);
     }
 
-    generateUpsertSql(entry : CfEntry) {
-        let tableName = this.context.getTableNameForEntry(entry);
-        let sqlStatements = [];
-
-        let sqlData = new Map<string, string | number>();
+    generateData(entry : CfEntry) {
+        this.data = new Map<string, RowUpdate[]>();
 
         // generate sql-data
+
+        let rowData = new Map<string, any>();
 
         for (let fieldId of Object.keys(entry.fields)) {
             let field = entry.fields[fieldId];
@@ -222,19 +286,13 @@ export class EntryImporter {
                     let array = <CfLink[]>field;
 
                     for (let link of array) {
-                        sqlStatements.push(
-                              `-- *********************************************\n`
-                            + `-- *\n` 
-                            + `-- * LINK ${entry.sys.id} [type=${entry.sys.contentType.sys.id}] -> ${fieldDefinition.id} -> ${link.sys.id}\n` 
-                            + `-- *\n` 
-                            + `-- **\n` 
-                            + `INSERT INTO ${tableName} (owner_cfid, item_cfid)\n`
-                            + `VALUES (\n`
-                            + `    ${entry.sys.id},\n`
-                            + `    ${this.serializeValue(link.sys.id)}\n`
-                            + `)\n`
-                            + `  ON CONFLICT (item_cfid)\n`
-                            + `  DO NOTHING`
+                        let linkRowData = new Map<string, any>();
+                        linkRowData.set('owner_cfid', entry.sys.id);
+                        linkRowData.set('item_cfid', link.sys.id);
+
+                        this.addRow(
+                            `${this.context.getTableNameForEntry(entry)}_${this.context.transformIdentifier(fieldDefinition.id)}`, 
+                            { onConflict: 'nothing', uniqueKey: 'item_cfid', data: linkRowData }
                         );
                     }
                 } else {
@@ -249,7 +307,7 @@ export class EntryImporter {
                         throw new Error('bad');
                         
                     }
-                    sqlData.set(columnName, link.sys.id);
+                    rowData.set(columnName, link.sys.id);
                 }
             } else {
                 let rawValue : any = field;
@@ -259,32 +317,16 @@ export class EntryImporter {
                     rawValue = localizedField[this.context.defaultLocalization];
                 }
 
-                sqlData.set(columnName, rawValue);
+                rowData.set(columnName, rawValue);
             }
         }
 
-        let keys = Array.from(sqlData.keys());
+        this.addRow(this.context.getTableNameForEntry(entry), {
+            onConflict: 'update',
+            uniqueKey: 'cfid',
+            data: rowData
+        });
 
-        sqlStatements.push(
-              `\n`
-            + `-- *********************************************\n`
-            + `-- *\n` 
-            + `-- * ENTRY ${entry.sys.id} [type=${entry.sys.contentType.sys.id}]\n` 
-            + `-- *\n` 
-            + `-- **\n` 
-            + `INSERT INTO ${tableName} (${keys.map(key => `"${key}"`).join(', ')})\n`
-            + `  VALUES (\n`
-            + `    ${keys.map(key => this.serializeValue(sqlData.get(key))).join(`,\n    `)}\n`
-            + `  )\n`
-            + `  ON CONFLICT (cfid)\n`
-            + `  DO UPDATE SET\n`
-            + `    ${keys
-                        .filter(x => x !== 'cfid')
-                        .map(key => `"${key}" = EXCLUDED."${key}"`)
-                        .join(`,\n    `)}\n`
-        );
-
-        return sqlStatements;
     }
 }
 
