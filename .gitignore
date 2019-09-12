@@ -1,0 +1,5 @@
+node_modules/
+dist/
+exported-content/
+data/
+*.sql

@@ -1,0 +1,22 @@
+{
+  "name": "discontented",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p .",
+    "start": "npm run build && node .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^12.7.5",
+    "typescript": "^3.6.3"
+  },
+  "dependencies": {
+    "change-case": "^3.1.0",
+    "contentful-export": "^7.6.0",
+    "source-map-support": "^0.5.13"
+  }
+}
