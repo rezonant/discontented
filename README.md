@@ -32,7 +32,7 @@ In order to maximize the usefulness of `discontented` for all software teams out
 
 When a Contentful resource gets updated, you can tell `discontented` to contact your web service in order to run business-rule-specific lifecycle hooks. When you want to update a resource at Contentful and keep the resource in sync on both sides, you can use a (much simpler than Contentful!) REST API to perform the update in both places without having to reimplement the extensive translation logic that `discontented` already has.
 
-# Testing
+# Testing the Scripts
 
 To try this, first make sure to set up a `spaceId` and `managementToken` in `src/credentials.ts`.
 
@@ -42,3 +42,31 @@ Once you have data stored locally, use `generateSchema()` to create a DDL defini
 
 Create a SQL batch IMPORT script using `generateBatchUpdate()`. It will land at `data/batch-update.sql`.
 
+# Programmatic Usage
+
+See `app.module.ts` for an idea of what a project that used `discontented` as a library may look like. The project using `discontented` would be a simple Alterior application module which has configured `DcfCommonModule`. The team would maintain a very small Typescript app that depended on `discontented` to provide both an administration CLI and a deployable web service.
+
+# Testing the Web Service
+
+`discontented` provides a web service that provides an API to interface with.
+- Accepts Contentful webhooks to keep the local database up to sync with changes in Contentful
+- Accepts requests from your services to create/update the Contentful "view" of a SQL model (Push API)
+
+## Webhooks
+
+Accepts Contentful webhooks on `POST /webhooks`. Use `ngrok` for localhost webhook testing.
+
+## Push API
+
+To push an update into Contentful, send the table name and contents of a SQL table row update to `PATCH /push`.
+
+The format is:
+
+```json
+{
+    "tableName": "discontented_productions_vod_clips",
+    "rowData": { "id": 2324, "cfid": "ac3DaE9cfFdeDs", "title": "My Title", "tags": ["foo", "bar"] }
+}
+```
+
+The keys of `rowData` are the SQL column names in the local model. This allows you to just pass the SQL update at hand to `discontented` without needing to handle any Contentful lookup procedures within your app.
