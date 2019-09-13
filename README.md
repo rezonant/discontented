@@ -14,19 +14,19 @@ Design is based on the premise that a successful migration away from Contentful 
 
 Our envisioned path away from Contentful is as follows (your team may wish to do it differently):
 
-1. Batch import your existing schema and data into SQL 
-2. Freeze non-trivial changes to your Contentful model (adding new fields is OK)
-3. Continually update the SQL copy of the data using Contentful's webhooks feature while publishers continue to edit using Contentful.
-4. Rewrite your most complex and performance-intensive queries using the SQL models
-5. Build proper forms over data editors that target a model layer featuring abstracted delivery (ie ability to write to both
+1. Batch import your existing schema and data into SQL and institute a freeze on non-trivial changes to your Contentful model (adding new fields is OK)
+2. Continually update the SQL copy of the data using Contentful's webhooks feature while publishers continue to edit using Contentful.
+3. Rewrite your most complex and performance-intensive queries using the SQL models
+4. Wire your SQL models to send change notifications to `discontentful`
+5. Build proper forms over data editors that target the SQL model layer
 or either Contentful and SQL). Deploy them configured to target Contentful's APIs at first
 6. Move all usages to SQL
 7. Move publishers over to the new editing solution, account for any missed use cases and ergonomics improvements
-8. Freeze all changes via Contentful
-9. Migrate your file assets from Contentful by migrating `_cfurl` fields to be hosted elsewhere
-10. Rewire associations to be based on `id` or some other ID on the newly canonical SQL store
-11. Replace `cfid` references on linking tables with `id` or some other linking identifier
-12. Reap the rewards of not being limited by Contentful!
+8. Migrate your file assets from Contentful by migrating `_cfurl` fields to be hosted elsewhere
+9. Rewire associations to be based on `id` or some other ID on the newly canonical SQL store
+10. Replace `cfid` references on linking tables with `id` or some other linking identifier
+
+Then, reap the rewards of not being limited by Contentful!
 
 In order to maximize the usefulness of `discontented` for all software teams out there still using Contentful, we have built the tool to be independent from your overall software stack. The tool manages the schema of Contentful mirror tables for you, and provides a microservice that can handle both periodic batch and on-demand syncing (webhooks) from Contentful on an ongoing basis.
 
