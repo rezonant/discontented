@@ -1,144 +1,4 @@
-import { CfStore, CfType, CfEntry, CfLink, CfTypeField, CfLocalizedValue } from "./contentful";
-import * as changeCase from 'change-case';
-import { stringify } from "querystring";
-
-export interface ColumnMapOptions {
-    name? : string;
-    sqlType? : string;
-}
-
-export interface ColumnMap {
-    [ fieldId : string ] : string | ColumnMapOptions;
-}
-
-export interface TableMapOptions {
-    name? : string;
-    columnMap? : ColumnMap;
-}
-
-export interface TableMap {
-    [ typeId : string ] : string | TableMapOptions;
-}
-
-export interface Options {
-    tablePrefix? : string;
-    tableMap? : TableMap;
-    defaultLocalization? : string;
-
-    transformIdentifier? : (id : string) => string;
-    deriveTableNameFromContentfulType? : (id : string) => string;
-    pluralize? : (id : string) => string;
-}
-
-export interface CfSpaceCredentials {
-    spaceId: string;
-    managementToken: string;
-}
-
-export class Context {
-    constructor(
-        readonly definition : Options = {}
-    ) {
-    }
-
-    private _credentials : CfSpaceCredentials;
-
-    get defaultLocalization() {
-        return this.definition.defaultLocalization || 'en-US';
-    }
-
-    get tablePrefix() {
-        return this.definition.tablePrefix;
-    }
-
-    setCredentials(creds : CfSpaceCredentials) {
-        this._credentials = creds;
-    }
-
-    toJSON() {
-        let shallowClone = Object.assign({}, this);
-
-        delete shallowClone._credentials;
-    }
-
-    get credentials() {
-        return this._credentials;
-    }
-
-    serializeValue(value : any, quoteChar = `'`) : string {
-        if (typeof value === 'string') {
-            return `${quoteChar}${value.replace(
-                            new RegExp(quoteChar, 'g'), `${quoteChar}${quoteChar}`
-                        )}${quoteChar}`;
-        } else if (typeof value === 'number') {
-            return `${value}`;
-        } else if (typeof value === 'boolean') {
-            return value ? 'true' : 'false';
-        } else if (value instanceof Date) {
-            return value.toISOString();
-        } else if (value instanceof Array || value.length !== undefined) {
-            let array = Array.from(<any[]>value);
-
-            return this.serializeValue(`{${array.map(x => this.serializeValue(x, `"`)).join(', ')}}`);
-        } else {
-            throw new Error(`Could not serialize value: ${JSON.stringify(value)}`);
-        }
-    }
-
-    pluralize(name : string) {
-        if (this.definition.pluralize)
-            return this.definition.pluralize(name);
-
-        if (name.endsWith('s'))
-            return name + 'es';
-        return name + 's';
-    }
-
-    getColumnNameForFieldId(identifier : string) {
-        return this.transformIdentifier(identifier);
-    }
-
-    getColumnNameForField(field : CfTypeField) {
-        return this.getColumnNameForFieldId(field.id);
-    }
-
-    transformIdentifier(identifier : string) {
-        if (this.definition.transformIdentifier)
-            return this.definition.transformIdentifier(identifier);
-        
-        return changeCase.snake(identifier);
-    }
-    
-    getTableNameForEntry(entry : CfEntry) {
-        return this.getTableNameForTypeId(entry.sys.contentType.sys.id);
-    }
-
-    getTableNameForType(entry : CfType) {
-        return this.getTableNameForTypeId(entry.sys.id);
-    }
-
-    getTableNameForTypeId(cfContentTypeId : string) {
-        if (this.definition.deriveTableNameFromContentfulType)
-            return this.definition.deriveTableNameFromContentfulType(cfContentTypeId);
-
-        let tableName : string;
-
-        let mapEntry = this.definition.tableMap[cfContentTypeId];
-        if (mapEntry)
-            tableName = typeof mapEntry === 'string' ? mapEntry : mapEntry.name;
-
-        if (!tableName) {
-            if (this.definition.deriveTableNameFromContentfulType)
-                tableName = this.definition.deriveTableNameFromContentfulType(cfContentTypeId);
-            else
-                tableName = this.pluralize(this.transformIdentifier(cfContentTypeId));
-        }
-
-        tableName = `${this.tablePrefix}${tableName}`;
-
-        return tableName;
-    }
-}
+import { CfStore, CfType, CfEntry, CfLink, CfTypeField, CfLocalizedValue, Context } from "./common";
 
 export class BatchImporter {
     constructor(
@@ -164,22 +24,22 @@ export class BatchImporter {
         rows.push(...rowsToAdd);
     }
 
-    generateForEntry(entry : CfEntry) {
+    private generateForEntry(entry : CfEntry) {
         this.entryImporter.generateData(entry);
 
         for (let tableName of this.entryImporter.data.keys()) 
             this.addRows(tableName, this.entryImporter.data.get(tableName));
-
-        let tableName = this.context.getTableNameForEntry(entry);
-        let sqlStatements : string[] = [];
     }
 
-    generateBatchSql() {
+    generateBatchSql(entries : CfEntry[] = null) {
+        if (!entries)
+            entries = this.source.entries;
+
         let sql : string[] = [];
 
         this.data = new Map<string, RowUpdate[]>();
 
-        for (let entry of this.source.entries)
+        for (let entry of entries)
             this.generateForEntry(entry);
         
         for (let tableName of this.data.keys()) {

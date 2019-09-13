@@ -1,4 +1,15 @@
 
+// For reference of available webhook Topic values: 
+// https://www.contentful.com/developers/docs/references/content-management-api/#/reference/webhooks
+
+export const CF_TOPIC_ENTRY_PUBLISH = 'ContentManagement.Entry.publish';
+export const CF_TOPIC_ENTRY_UNPUBLISH = 'ContentManagement.Entry.unpublish';
+
+export interface CfSpaceCredentials {
+    spaceId: string;
+    managementToken: string;
+}
+
 export interface CfLinkSys extends CfResourceSys {
     type : "Link";
     linkType : string;
@@ -118,9 +129,12 @@ export interface CfEntrySys extends CfSpaceResourceSys {
     contentType : CfLink;   
 }
 
-export interface CfEntry extends CfSpaceResource {
-    sys : CfEntrySys;
+export interface CfEntryDefinition {
     fields : CfEntryFields;
+}
+
+export interface CfEntry extends CfSpaceResource, CfEntryDefinition {
+    sys : CfEntrySys;
 }
 
 export interface CfStore {

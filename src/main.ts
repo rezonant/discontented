@@ -1,11 +1,13 @@
+import 'source-map-support/register';
+
 import * as contentfulExport from 'contentful-export';
 import * as fs from 'fs';
-import { CfStore, CfType } from './contentful';
-import { SchemaMigrator, Context, BatchImporter } from './schema-migrator';
-
-import * as sourceMapSupport from 'source-map-support';
+import { SchemaMigrator, BatchImporter } from './schema-migrator';
 import { CREDENTIALS } from './credentials';
-sourceMapSupport.install();
+import { CfStore, Context } from './common';
+import { Application } from '@alterior/runtime';
+import { ServiceModule } from './service/service.module';
+import { AppModule } from './app.module';
 
 // --------------------
 
@@ -63,8 +65,13 @@ async function doBatchImport(context : Context) {
     fs.writeFileSync('data/batch-update.sql', importer.generateBatchSql().join("\n;\n\n"));
 }
 
+async function runServer(context : Context) {
+    Application.bootstrap(AppModule);
+}
+
 async function main() {
     let context = new Context({
+        schemaFile: 'data/contentful-schema.json',
         tablePrefix: 'discontented_',
         tableMap: {
             sFzTZbSuM8coEwygeUYes: 'franchises',
@@ -80,6 +87,7 @@ async function main() {
 
     // ----------------------------------------
 
+    runServer(context);
     //await fullExport(context);
     //await generateSchema(context);
     await doBatchImport(context);
