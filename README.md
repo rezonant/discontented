@@ -4,9 +4,147 @@ We are not content with the capabilities of Contentful so we strive to disconnec
 
 `discontented` helps you migrate your content store from Contentful to PostgreSQL.
 
-# Warning: Early Development
+# Usage
 
-This tool is not yet built as designed. The structure and paradigm of the tool is going to change.
+First, create a new directory for your migration project and enter it.
+
+Generate `package.json` for your new project:
+
+```
+npm init
+```
+
+Install `discontented`:
+
+```
+npm i discontented
+```
+
+Set up some NPM scripts within `package.json` for interacting with `discontented`:
+
+```json
+{
+  // ...
+  "scripts": {
+    "dcf": "dcf",
+    "start": "dcf serve",
+    "migrate": "dcf migrate",
+    "import": "dcf import",
+    "export": "dcf export"
+  },
+  // ...
+}
+```
+
+Create a configuration file named `discontented.json`:
+
+```json
+{
+    "contentful": {
+        "spaceId": "<space-id>",
+        "managementToken": "<management-token>"
+    },
+    "database": {
+        "host": "localhost",
+        "port": 5432,
+        "user": "pguser",
+        "password": "pgpassword",
+        "database": "mydatabase"
+    },
+
+    // optionally customize the process
+
+    "tablePrefix": "discontented_",
+    "tableMap": {
+        "myContentTypeId": "my_table_name",
+        "anotherContentTypeId": "another_table_name"
+    }    
+}
+```
+
+Once you have configured your migration project as you'd like, use:
+
+```
+npm run migrate
+```
+
+This will connect to your Contentful space, fetch it's schema and construct a migration SQL file that contains DDL commands for creating the appropriate tables to store your previously-discontentful data.
+
+You can apply outstanding migrations using:
+
+```
+npm run apply-migrations
+```
+
+Once you have populated the tables in your database, you can perform a one-time data import using:
+
+```
+npm run import
+```
+
+This command will export your entire Contentful space and insert the data it finds into your Postgres database, so it may take some time to complete.
+The `import` command is idempotent- missing rows will be created and existing rows will be updated to match the current state.
+
+`discontented` supports automatically keeping the SQL copy of your content up to date with changes happening in Contentful. To do this, you must stand up a web-accessible server and run:
+
+```
+npm start
+```
+
+This will activate `discontented`'s web service on port 3001. 
+
+Create a Contentful webhook filtered for the "Publish and Unpublish Entries" events which will call `discontented` at the following URL:
+
+```
+https://discontented.example.com:3001/webhooks
+```
+
+Of course, you will need to replace the hostname `discontented.example.com` with the hostname of the server you stood up to host the web service. 
+
+`discontented` can handle migrating your SQL tables to accomodate **minor** changes to your Contentful schema. It is important that you limit the changes to your Contentful schema while `discontented` is mirroring your data, because it does not support all types of schema changes that Contentful does.
+
+**Supported** schema changes:
+
+- Adding new content types
+- Adding new fields to existing models
+
+**Unsupported** schema changes:
+
+- Changing the types of fields
+- Renaming fields
+- Renaming content types
+
+`discontented` uses `migrations/schema.json` to determine what content types and fields your database currently supports. Because of this, when you add a new field to Contentful without also creating a `discontented` migration, those fields will not be synchronized when using the batch import or webhook sync features.
+
+In order to accomodate supported schema changes, simply rerun
+
+```
+npm run migrate
+```
+
+This will create a new migration file in `migrations`. 
+Then use 
+
+```
+npm run apply-migrations
+```
+
+...to apply the new schema change to your Postgres database.
+
+# Deployment
+
+We recommend that you create a continuous integration process to handle deploying the `discontented` web service as well as managing the schema lifecycle of your Postgres databases.
+
+A CI process should involve the following `discontented` commands:
+- modify configuration stored in `discontented.json` to match the deployment environment
+- deploy to destination server, running the following initialization procedure:
+    - `npm install`
+    - `npm apply-migrations`
+    - `npm start`
+
+The `npm run migrate` and `npm run import` steps should be run by the developer, and their results should be committed into the repository of the migration project (and not automated).
+
+In this way, you can control the updates to your database schema on various deployment environments just as you would control the version of your application being deployed to those environments.
 
 # Design
 
