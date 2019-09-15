@@ -10,12 +10,16 @@ import { DatabaseService } from './database';
 import { Context, CfStore, Options } from './common';
 import { SchemaMigrator, BatchImporter } from './schema-migrator';
 import { timeout } from '@alterior/common';
+import { PullService } from './service/pull.service';
+import { SchemaService } from './service/schema.service';
 
 @Injectable()
 export class DiscontentedCli {
     constructor(
         private roles : RolesService,
-        private context : Context
+        private context : Context,
+        private schemaService : SchemaService,
+        private pullService : PullService
     ) {
     }
 
@@ -98,9 +102,6 @@ export class DiscontentedCli {
         if (cmd === 'serve')
             return -1;
 
-        // ----------------------------------------
-
-        console.log(`Discontented: All done!`);
         return 0;
     }
 
@@ -126,10 +127,17 @@ export class DiscontentedCli {
     }
 
     /**
-     * Command: dcf export
+     * Command: dcf export <filename.json>
      * @param params 
      */
     async export(params : string[]) {
+        if (params.length === 0) {
+            console.error(`Usage: dcf export <filename.json>`);
+            return;
+        }
+        
+        let filename = params[0];
+
         try {
             let result = await contentfulExport({
                 exportDir: 'exported-content',
@@ -137,7 +145,9 @@ export class DiscontentedCli {
                 ...this.context.definition.contentful
             });
 
-            fs.writeFileSync('data/demo-content.json', JSON.stringify(result));
+
+            console.log(`Writing Contentful data to '${filename}'...`);
+            fs.writeFileSync(filename, JSON.stringify(result));
 
         } catch (e) {
             console.error(`Caught error while exporting from Contentful: ${e}`);
@@ -150,33 +160,7 @@ export class DiscontentedCli {
      * @param params 
      */
     async migrate(params : string[]) {
-
-        let oldSchema = this.context.schema;
-        let newSchema = await this.context.fetchSchemaFromContentful();
-
-        let migrator = new SchemaMigrator(this.context);
-
-        console.log(`Generating SQL schema...`);
-        let sql = await migrator.migrate(oldSchema, newSchema);
-
-        if (sql) {
-            let filename = path.join(
-                this.context.migrationDirectory, 
-                `${new Date().toISOString().replace(/T/, '_') .replace(/\..*$/, '').replace(/[^0-9_]/g, '')}.sql`
-            );
-
-            if (!fs.existsSync(this.context.migrationDirectory)) {
-                console.log(`Creating migrations directory at '${this.context.migrationDirectory}'`);
-                mkdirp.sync(this.context.migrationDirectory);
-            }
-            
-            console.log(`Writing new migration file '${filename}'...`);
-            fs.writeFileSync(filename, sql);
-
-            this.context.saveCurrentSchema(newSchema);
-        } else {
-            console.log(`dcf: No changes to migrate.`);
-        }
+        await this.schemaService.migrate();
     }
 
     /**
@@ -184,11 +168,7 @@ export class DiscontentedCli {
      * @param params 
      */
     async import(params : string[]) {
-        this.context.fetchStore();
-        let store = await this.context.fetchStore();
-        let importer = new BatchImporter(this.context, store);
-
-        fs.writeFileSync('data/batch-update.sql', importer.generateBatchSql().join("\n;\n\n"));
+        await this.pullService.importAll();
     }
 
     /**
@@ -202,7 +182,7 @@ export class DiscontentedCli {
     /**
      * Command: dcf help
      */
-    showHelp(params : string[]) {
+    async showHelp(params : string[]) {
         console.log(`discontented v0.0.0`);
     }
 
@@ -211,7 +191,7 @@ export class DiscontentedCli {
      * @param params 
      */
     async applyMigrations(params : string[]) {
-        // TODO
+        await this.schemaService.applyMigrations();
     }
 
     /**
