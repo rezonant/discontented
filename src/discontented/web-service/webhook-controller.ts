@@ -3,15 +3,22 @@ import { CF_TOPIC_ENTRY_PUBLISH, CF_TOPIC_ENTRY_UNPUBLISH, Context, CfEntry } fr
 import { BatchImporter } from "../schema-migrator";
 import * as bodyParser from 'body-parser';
 import { HttpError } from "@alterior/common";
+import { PullService } from "../service/pull.service";
 
 @Controller()
 export class CfWebhookController {
     constructor(
-        private context : Context
+        private context : Context,
+        private pullService : PullService
     ) {
 
     }
 
+    /**
+     * POST /webhook
+     * @param entry The JSON body of the request
+     * @param event The route event 
+     */
     @Post('', {
         middleware: [
             bodyParser.json({ 
@@ -19,16 +26,13 @@ export class CfWebhookController {
             })
         ]
     })
-    post(@Body() entry : CfEntry, event : RouteEvent) {
+    async post(@Body() entry : CfEntry, event : RouteEvent) {
         let cfTopic = event.request.headers['x-contentful-topic'];
         let handle = false;
         let isPublished = false;
 
         if (!entry)
             return Response.badRequest();
-
-        // console.log("ENTRY:");
-        // console.log(JSON.stringify(entry, undefined, 2));
 
         if (cfTopic === CF_TOPIC_ENTRY_PUBLISH) {
             handle = true;
@@ -37,18 +41,23 @@ export class CfWebhookController {
             handle = true;
         }
 
+        if (!handle)
+            return Response.ok();
+        
         if (!this.context.schema) {
             return Response.serverError({ 
                 type: 'fault', 
-                message: `No schema loaded`,
-                options: this.context.definition
+                message: `No schema loaded`
             });
         }
         
-        let migrator = new BatchImporter(this.context, this.context.schema);
-        let sql = migrator.generateBatchSql([entry]);
-        
-        console.log(`UPDATE FROM CF:`);
-        sql.forEach(line => console.log(line));
+        try {
+            await this.pullService.importEntry(entry);
+        } catch (e) {
+            return Response.serverError({
+                type: 'fault',
+                message: e.message
+            });
+        }
     }
 }

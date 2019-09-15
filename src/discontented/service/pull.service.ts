@@ -1,5 +1,5 @@
 import { Injectable } from "@alterior/di";
-import { Context } from "../common";
+import { Context, CfEntry } from "../common";
 import { BatchImporter } from "../schema-migrator";
 import { DatabaseService } from "../database";
 
@@ -10,6 +10,19 @@ export class PullService {
         private database : DatabaseService
     ) {
 
+    }
+
+    async importEntry(entry: CfEntry) {
+        if (!this.context.schema)
+            throw new Error(`No schema loaded`);
+        
+        let migrator = new BatchImporter(this.context, this.context.schema);
+        let sql = migrator.generateBatchSql([entry]);
+        
+        console.log(`UPDATE FROM CF:`);
+        sql.forEach(line => console.log(line));
+
+        // TODO
     }
 
     async importAll() {
