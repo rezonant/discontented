@@ -1,3 +1,4 @@
+import * as pg from 'pg';
 
 export interface ColumnMapOptions {
     name? : string;
@@ -17,11 +18,20 @@ export interface TableMap {
     [ typeId : string ] : string | TableMapOptions;
 }
 
+export interface ContentfulOptions {
+    spaceId : string;
+    managementToken : string;
+}
+
 export interface Options {
     tablePrefix? : string;
     tableMap? : TableMap;
     defaultLocalization? : string;
     schemaFile? : string;
+    migrationDirectory? : string;
+
+    contentful? : ContentfulOptions;
+    dbConnection? : pg.ClientConfig;
 
     transformIdentifier? : (id : string) => string;
     deriveTableNameFromContentfulType? : (id : string) => string;

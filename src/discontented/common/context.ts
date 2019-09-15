@@ -1,5 +1,6 @@
 import * as changeCase from 'change-case';
 import * as fs from 'fs';
+import * as pg from 'pg';
 
 import { CfTypeField, CfEntry, CfType, CfSpaceCredentials, CfStore } from './contentful';
 import { Options } from './options';
@@ -17,8 +18,10 @@ export class Context {
             this.definition = {};
     }
 
-    private _credentials : CfSpaceCredentials;
-
+    get migrationDirectory() {
+        return this.definition.migrationDirectory || 'migrations';
+    }
+    
     get defaultLocalization() {
         return this.definition.defaultLocalization || 'en-US';
     }
@@ -28,28 +31,31 @@ export class Context {
     }
 
     private _schema : CfStore = null;
+
+    get schemaFile() : string {
+        return this.definition.schemaFile || 'migrations/schema.json';
+    }
+
     get schema() : CfStore {
         if (!this._schema) {
-            if (this.definition.schemaFile) {
-                this._schema = JSON.parse(fs.readFileSync(this.definition.schemaFile).toString());
+            if (this.schemaFile) {
+                if (!fs.existsSync(this.schemaFile))
+                    return null;
+                this._schema = JSON.parse(fs.readFileSync(this.schemaFile).toString());
             }
         }
 
         return this._schema;
     }
 
-    setCredentials(creds : CfSpaceCredentials) {
-        this._credentials = creds;
-    }
-
-    toJSON() {
-        let shallowClone = Object.assign({}, this);
-
-        delete shallowClone._credentials;
-    }
-
-    get credentials() {
-        return this._credentials;
+    get dbConnectionOptions(): pg.ClientConfig {
+        return Object.assign(
+            {
+                host: 'localhost',
+                database: 'discontented'
+            }, 
+            this.definition.dbConnection || {}
+        );
     }
 
     private typeIdToTableName = new Map<string, string>();

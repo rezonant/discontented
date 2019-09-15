@@ -1,18 +1,19 @@
-import { Controller, Post, Patch, Body, Response } from "@alterior/web-server";
-import * as bodyParser from 'body-parser';
+import { Injectable } from "injection-js";
 import { Context, CfEntry, CfEntryDefinition, CfLink } from "../common";
+import { DatabaseService } from "../database";
 
 export interface PushUpdate {
     tableName : string;
-    rowData : any;
+    cfid : string;
+    cfVersion : number;
 }
 
-@Controller()
-export class PushController {
+@Injectable()
+export class PushService {
     constructor(
-        private context : Context
+        private context : Context,
+        private database : DatabaseService
     ) {
-
     }
 
     private async putEntry(id : string, entry : CfEntryDefinition) {
@@ -24,23 +25,25 @@ export class PushController {
         return null; // todo
     }
 
-    @Patch('', {
-        middleware: [
-            bodyParser.json()
-        ]
-    })
-    async patch(@Body() repr : PushUpdate) {
+    public async push(updateDef : PushUpdate) {
         let schema = this.context.schema;
-        let typeId = this.context.getTypeIdForTableName(repr.tableName);
+        let typeId = this.context.getTypeIdForTableName(updateDef.tableName);
+
+        if (!typeId) {
+            throw new Error(`Could not find a Contentful type for table ${updateDef.tableName}`);
+        }
+
         let type = schema.contentTypes.find(x => x.sys.id === typeId);
-        let cfid = repr.rowData['cfid'];
+        let cfid = updateDef.cfid;
         let fields : any = {};
         let existingEntry = await this.getEntry(cfid);
         let tableName = this.context.getTableNameForType(type);
 
+        let rowData = await this.database.getRowByCfid(tableName, cfid);
+
         for (let field of type.fields) {
             let columnName = this.context.getColumnNameForField(field);
-            let value = repr.rowData[columnName];
+            let value = rowData[columnName];
             if (value === undefined || value === null)
                 continue;
             
@@ -56,16 +59,32 @@ export class PushController {
 
             if (fieldType === 'Link') {
                 if (isArray) {
-                    // Linking table
+                    // Linking table, we must fetch additional rows
                     let linkingTableName = `${tableName}_${columnName}`;
+                    let itemCfids = await this.database.getLinkingTableIds(linkingTableName, cfid);
+
+                    fields[field.id] = {
+                        [this.context.defaultLocalization]: 
+                            itemCfids.map(itemCfid => ({
+                                sys: {
+                                    type: 'Link',
+                                    linkType: 'Entry',
+                                    id: itemCfid
+                                }
+                            }))
+                    };
+
                 } else {
                     if (linkType === 'Entry') {
                         columnName += '_cfid';
-                        fields[field.id] = <CfLink>{
-                            sys: {
-                                type: 'Link',
-                                linkType: 'Entry',
-                                id: value,
+                        fields[field.id] = {
+                            [this.context.defaultLocalization]:
+                                <CfLink>{
+                                sys: {
+                                    type: 'Link',
+                                    linkType: 'Entry',
+                                    id: value,
+                                }
                             }
                         };
                     } else if (linkType === 'Asset') {
@@ -77,7 +96,7 @@ export class PushController {
                 }
             } else {
                 fields[field.id] = {
-                    "en-US": value
+                    [this.context.defaultLocalization]: value
                 }
             }
         }
@@ -85,12 +104,7 @@ export class PushController {
         try {
             await this.putEntry(cfid, { fields });
         } catch (e) {
-            console.error(`Caught error while putting entry to Contentful: ${e}`);
-            return Response.serverError();
-        }
-
-        return {
-            status: 'success'
+            throw new Error(`Caught error while putting entry to Contentful: ${e}`);
         }
     }
 }
