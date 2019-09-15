@@ -4,6 +4,7 @@ import { DatabaseModule } from "./database";
 import { ServiceModule } from "./service";
 import { AppOptions } from "@alterior/runtime";
 import { WebServiceModule } from "./web-service";
+import { DiscontentedCli } from "./cli";
 
 @AppOptions()
 @Module({
@@ -12,6 +13,9 @@ import { WebServiceModule } from "./web-service";
         DatabaseModule,
         ServiceModule,
         WebServiceModule
+    ],
+    providers: [
+        DiscontentedCli
     ]
 })
 export class DiscontentedModule {

@@ -1,6 +1,7 @@
 import * as changeCase from 'change-case';
 import * as fs from 'fs';
 import * as pg from 'pg';
+import * as contentfulExport from 'contentful-export';
 
 import { CfTypeField, CfEntry, CfType, CfSpaceCredentials, CfStore } from './contentful';
 import { Options } from './options';
@@ -12,7 +13,7 @@ export const DCF_OPTIONS = new InjectionToken('DCF_OPTIONS');
 export class Context {
     constructor(
         @Optional() @Inject(DCF_OPTIONS)
-        readonly definition : Options = {}
+        public definition : Options = {}
     ) {
         if (!this.definition)
             this.definition = {};
@@ -60,6 +61,33 @@ export class Context {
 
     private typeIdToTableName = new Map<string, string>();
     private tableNameToTypeId = new Map<string, string>();
+
+    async fetchStore(): Promise<CfStore> {
+        
+        throw new Error("Method not implemented.");
+    }
+
+    async fetchSchemaFromContentful(): Promise<CfStore> {
+        console.log(`Fetching schema from Contentful...`);
+
+        let result;
+
+        result = await contentfulExport({
+            skipContent: true,
+            skipRoles: true,
+            skipWebhooks: true,
+            saveFile: false,
+
+            ...this.definition.contentful
+        });
+
+        return result;
+    }
+
+    saveCurrentSchema(schema : CfStore) {        
+        console.log(`Saving Contentful schema to ${this.schemaFile}`);
+        fs.writeFileSync(this.schemaFile, JSON.stringify(schema, undefined, 2));
+    }
 
     addMappingForTypeId(typeId : string) {
         let tableName = this.getTableNameForTypeId(typeId);

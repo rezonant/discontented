@@ -7,7 +7,11 @@ export class DatabaseService {
     constructor(
         readonly context : Context
     ) {
-        this.client = new pg.Client(this.context.dbConnectionOptions);
+    }
+
+    private async connect() {
+        if (this.clientReady)
+            return await this.clientReady;
 
         this.clientReady = new Promise(async (resolve, reject) => {
             try {
@@ -23,7 +27,7 @@ export class DatabaseService {
     private clientReady : Promise<void>;
 
     async query(queryText : string, ...values : any[]): Promise<pg.QueryResult> {
-        await this.clientReady;
+        await this.connect();
         return await this.client.query(queryText, values);
     }
 

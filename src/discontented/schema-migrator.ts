@@ -361,11 +361,19 @@ export class SchemaMigrator {
         let columnDefinitions = [];
 
         columnDefinitions.push(`"id" BIGSERIAL PRIMARY KEY`);
+        columnDefinitions.push(`"environment_cfid" VARCHAR(64) UNIQUE`);
         columnDefinitions.push(`"cfid" VARCHAR(64) UNIQUE`);
+        columnDefinitions.push(...table.columns.map(x => x.columnDeclarationSql).filter(x => x));
+
         columnDefinitions.push(`"created_at" TIMESTAMP`);
         columnDefinitions.push(`"updated_at" TIMESTAMP`);
         columnDefinitions.push(`"published_at" TIMESTAMP`);
-        columnDefinitions.push(...table.columns.map(x => x.columnDeclarationSql).filter(x => x));
+        columnDefinitions.push(`"first_published_at" TIMESTAMP`);
+        columnDefinitions.push(`"is_archived" BOOLEAN`);
+        columnDefinitions.push(`"is_deleted" BOOLEAN`);
+        columnDefinitions.push(`"is_published" BOOLEAN`);
+
+        columnDefinitions.push(`"published_version" INT`);
         columnDefinitions.push(`"raw" JSONB`);
         
         table.tableDeclarationSql = 
@@ -382,102 +390,6 @@ export class SchemaMigrator {
     private createTableForType(contentType : CfType) {
         let map = this.createTypeMap(contentType);
         return map.createDdl;
-
-        let tables = [];
-        // Determine the table name
-
-        let tableName = this.context.getTableNameForTypeId(contentType.sys.id);
-        
-        // Push attributes that are common to all Contentful entries
-
-        let columnDefinitions = [];
-
-        columnDefinitions.push(`"id" BIGSERIAL PRIMARY KEY`);
-        columnDefinitions.push(`"cfid" VARCHAR(64) UNIQUE`);
-        columnDefinitions.push(`"created_at" VARCHAR(64)`);
-        columnDefinitions.push(`"updated_at" VARCHAR(64)`);
-        columnDefinitions.push(`"published_at" VARCHAR(64)`);
-
-        // Construct column definitions (and optionally subtables)
-
-        for (let field of contentType.fields) {
-
-            let columnName = this.context.getColumnNameForFieldId(field.id);
-            let dataType = 'unknown';
-            let isArray = false;
-            let fieldType = field.type;
-
-            if (field.type === 'Array') {
-                isArray = true;
-                fieldType = field.items.type;
-            }
-            
-            let skipColumn = false;
-
-            if (fieldType === 'Link') {
-                let linkType = field.linkType;
-
-                if (field.type === 'Array') {
-                    isArray = true;
-                    linkType = field.items.linkType;
-                }
-
-                if (isArray) {
-                    let linkTableName = `${tableName}_${this.context.transformIdentifier(field.id)}`
-                    tables.push(
-                          `CREATE TABLE ${linkTableName} (\n`
-                        + `    "owner_cfid" VARCHAR(64),\n`
-                        + `    "item_cfid" VARCHAR(64) UNIQUE\n`
-                        + `)`
-                    );
-                    skipColumn = true;
-                } else {
-                    if (linkType === 'Asset') {
-                        columnName = `${columnName}_cfurl`;
-                        dataType = 'VARCHAR(1024)';
-                    } else if (linkType === 'Entry') {
-                        columnName = `${columnName}_cfid`;
-                        dataType = 'VARCHAR(64)';
-                    } else {
-                        throw new Error(`Encountered invalid Contentful Link type ${field.linkType}`);
-                    }
-                }
-            } else {
-                let simpleTypes = {
-                    Boolean: 'BOOLEAN',
-                    Integer: 'BIGINT',
-                    Number: 'REAL',
-                    Date: 'TIMESTAMP',
-                    Symbol: 'VARCHAR(256)',
-                    Text: 'TEXT',
-                    Location: 'JSONB',
-                    Object: 'JSONB'
-                };
-
-                dataType = simpleTypes[fieldType];
-
-                if (!dataType)
-                    dataType = `UNKNOWN[${fieldType}]`;
-
-                if (isArray) {
-                    // this is a simple array
-                    dataType += '[]';
-                }
-            }
-
-            if (!skipColumn)
-                columnDefinitions.push(`"${columnName}" ${dataType}`);
-        }
-
-        columnDefinitions.push(`"raw" JSONB`);
-
-        tables.push(
-              `CREATE TABLE ${tableName} (\n` 
-            + `    ${columnDefinitions.join(`,\n    `)}\n`
-            + `)`
-        );
-
-        return tables.join("\n\n");
     }
 
     /**
@@ -497,6 +409,19 @@ export class SchemaMigrator {
         }
 
         let sql = '';
+
+        if (isFirstMigration) {
+            sql += `\n`;
+            sql += `-- *************************************************************\n`
+            sql += `-- *\n`
+            sql += `-- * TRACK MIGRATIONS [${this.context.tablePrefix}migrations]\n`;
+            sql += `-- *\n`
+            sql += `-- **\n`
+            sql += `\n`;
+            sql += `CREATE TABLE ${this.context.tablePrefix}migrations (\n`
+            sql += `    version VARCHAR(30)\n`;
+            sql += `);\n`;
+        }
 
         for (let newType of newSchema.contentTypes) {
             let oldType = oldSchema.contentTypes.find(x => x.sys.id === newType.sys.id);
