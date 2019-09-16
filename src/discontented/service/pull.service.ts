@@ -17,12 +17,15 @@ export class PullService {
             throw new Error(`No schema loaded`);
         
         let migrator = new BatchImporter(this.context, this.context.schema);
-        let sql = migrator.generateBatchSql([entry]);
+        let sqlQueries = migrator.generateBatchSql([entry]);
         
-        console.log(`UPDATE FROM CF:`);
-        sql.forEach(line => console.log(line));
+        console.log(`Received updated data for entry ${entry.sys.id}:`);
+        sqlQueries.forEach(line => console.log(`- ${line}`));
 
-        // TODO
+        for (let sqlQuery of sqlQueries)
+            await this.database.query(sqlQuery);
+
+        console.log(`Saved data successfully.`);
     }
 
     async importAll() {
@@ -31,9 +34,19 @@ export class PullService {
         let importer = new BatchImporter(this.context, store);
 
         console.log(`Discontented: Creating SQL DML for ${store.entries.length} entries...`);
-        let sql = importer.generateBatchSql().join("\n;\n\n");
+        let sqlCommands = importer.generateBatchSql();
 
         console.log(`Importing into database...`);
+
+        for (let sqlCommand of sqlCommands) {
+            try {
+                await this.database.query(sqlCommand);
+            } catch (e) {
+                console.error(`Error occurred while running query '${sqlCommand}'`);
+                console.error(e);
+                throw e;
+            }
+        }
 
         console.log(` (TODO)`);
 

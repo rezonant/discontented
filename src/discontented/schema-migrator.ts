@@ -419,7 +419,7 @@ export class SchemaMigrator {
             sql += `-- **\n`
             sql += `\n`;
             sql += `CREATE TABLE ${this.context.tablePrefix}migrations (\n`
-            sql += `    version VARCHAR(30)\n`;
+            sql += `    version VARCHAR(30) UNIQUE\n`;
             sql += `);\n`;
         }
 

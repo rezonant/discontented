@@ -10,6 +10,47 @@ export interface CfSpaceCredentials {
     managementToken: string;
 }
 
+export interface CfArraySys {
+    type : 'Array';
+}
+
+export interface CfArray<T> {
+    sys : CfArraySys;
+    total : number;
+    skip : number;
+    limit : number;
+    items : T[];
+}
+
+export interface CfSpaceSys extends CfResourceSys {
+    type : 'Space';
+}
+
+export interface CfSpace extends CfResource {
+    sys : CfSpaceSys;
+    name : string;
+}
+
+export interface CfEnvironmentSys extends CfSpaceResourceSys {
+    type : 'Environment';
+}
+
+export interface CfEnvironment extends CfSpaceResource {
+    sys : CfEnvironmentSys;
+}
+
+export interface CfOrganizationSys {
+    type : 'Organization';
+    id : string;
+    version : number;
+    createdAt : string;
+    updatedAt : string;
+}
+export interface CfOrganization {
+    sys : CfOrganizationSys;
+    name : string;
+}
+
 export interface CfLinkSys extends CfResourceSys {
     type : "Link";
     linkType : string;
@@ -131,6 +172,10 @@ export interface CfEntrySys extends CfSpaceResourceSys {
 
 export interface CfEntryDefinition {
     fields : CfEntryFields;
+}
+
+export interface CfSnapshot {
+    snapshot : CfEntry;
 }
 
 export interface CfEntry extends CfSpaceResource, CfEntryDefinition {

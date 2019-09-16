@@ -1,6 +1,7 @@
 import { Injectable } from "injection-js";
 import { Context, CfEntry, CfEntryDefinition, CfLink } from "../common";
 import { DatabaseService } from "../database";
+import { ContentfulManagementService } from "./contentful-management";
 
 export interface PushUpdate {
     tableName : string;
@@ -12,7 +13,8 @@ export interface PushUpdate {
 export class PushService {
     constructor(
         private context : Context,
-        private database : DatabaseService
+        private database : DatabaseService,
+        private contentfulManagement : ContentfulManagementService
     ) {
     }
 
@@ -22,7 +24,11 @@ export class PushService {
     }
 
     private async getEntry(id : string): Promise<CfEntry> {
-        return null; // todo
+        return await this.contentfulManagement.getEntry(id);
+    }
+
+    private async getPublishedEntry(id : string): Promise<CfEntry> {
+        return await this.contentfulManagement.getEntry(id);
     }
 
     public async push(updateDef : PushUpdate) {

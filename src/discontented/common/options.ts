@@ -20,6 +20,7 @@ export interface TableMap {
 
 export interface ContentfulOptions {
     spaceId : string;
+    environmentId? : string;
     managementToken : string;
 }
 

@@ -12,7 +12,7 @@ export class DatabaseService {
     private async connect() {
         if (this.clientReady)
             return await this.clientReady;
-
+        this.client = new pg.Client(this.context.definition.dbConnection);
         this.clientReady = new Promise(async (resolve, reject) => {
             try {
                 await this.client.connect();
@@ -32,20 +32,23 @@ export class DatabaseService {
     }
 
     getRowObjectsFromResult(result : pg.QueryResult): any[] {
-        let rowDatas = [];
 
-        for (let row of result.rows) {
-            let rowData : any = {};
+        return result.rows;
 
-            for (let fieldNumber = 0; fieldNumber < result.fields.length; ++fieldNumber) {
-                let fieldDef = result.fields[fieldNumber];
-                rowData[fieldDef.columnID] = row[fieldNumber];
-            }
+        // let rowDatas = [];
 
-            rowDatas.push(rowData);
-        }
+        // for (let row of result.rows) {
+        //     let rowData : any = {};
 
-        return rowDatas;
+        //     for (let fieldNumber = 0; fieldNumber < result.fields.length; ++fieldNumber) {
+        //         let fieldDef = result.fields[fieldNumber];
+        //         rowData[fieldDef.columnID] = row[fieldNumber];
+        //     }
+
+        //     rowDatas.push(rowData);
+        // }
+
+        // return rowDatas;
     }
 
     async getRowByCfid(tableName : string, cfid : string): Promise<any> {
