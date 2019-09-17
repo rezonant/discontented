@@ -1,6 +1,9 @@
 import { Injectable } from "@alterior/di";
-import { Context, CfArray, CfSpace, CfEnvironment, CfOrganization, CfEntry, CfSnapshot, CfAsset } from "../common";
+import { Context, CfArray, CfSpace, CfEnvironment, CfOrganization, CfEntry, CfSnapshot, CfAsset, CfStore } from "../common";
 import { timeout } from "@alterior/common";
+import * as contentfulExport from 'contentful-export';
+import fetch from 'node-fetch';
+import { RequestInit, BodyInit } from 'node-fetch';
 
 export interface CfResourceQuery {
     limit? : number;
@@ -76,6 +79,10 @@ export class ContentfulManagementService {
         return await this.request<T>('GET', url, undefined, headers);
     }
 
+    async getFromCollection<T>(url : string, query : CfResourceQuery, headers? : HeadersInit): Promise<CfArray<T>> {
+        return await this.get(`${url}${this.queryString(query)}`, headers);
+    }
+
     async post<T>(url : string, data : T, headers? : HeadersInit) {
         return await this.request('POST', url, data, headers);
     }
@@ -130,6 +137,81 @@ export class ContentfulManagementService {
             queryParts.push(`${key}=${encodeURIComponent(query[key])}`);
 
         return `?${queryParts.join('&')}`;
+    }
+
+    async fetchSchema(): Promise<CfStore> {
+        console.log(`Fetching schema from Contentful...`);
+
+        let result;
+
+        result = await contentfulExport({
+            skipContent: true,
+            skipRoles: true,
+            skipWebhooks: true,
+            saveFile: false,
+
+            ...this.context.definition.contentful
+        });
+
+        return result;
+    }
+
+    async fetchStore(): Promise<CfStore> {
+        console.log(`Fetching data from Contentful...`);
+
+        let result : CfStore = this.context.schema;
+
+        result = await contentfulExport({
+            skipContent: false,
+            downloadAsset: false,
+            skipRoles: true,
+            skipWebhooks: true,
+            saveFile: false,
+
+            ...this.context.definition.contentful
+        });
+
+        // Contentful conveniently ignores `snapshots` resource
+        // in it's regular export tools, because it doesn't want you 
+        // to successfully leave.
+
+        let snapshots = [];
+
+        console.log(`Fetching all snapshots for ${result.contentTypes.length} content types...`);
+
+        for (let contentType of result.contentTypes) {
+            let set = await this.getEntireCollection(`/spaces/${this.spaceId}/environments/master/content_types/${contentType.sys.id}/snapshots`);
+            snapshots.push(...set);
+        }
+
+        console.log(`Fetched ${snapshots.length} snapshots.`);
+
+        result.snapshots = snapshots;
+        return result;
+    }
+
+    async getEntireCollection<T>(collectionUrl : string) : Promise<T[]> {
+        let skip = 0;
+        let limit = 1000;
+        let total = undefined;
+        let items : T[] = [];
+
+        while (true) {
+            let page = await this.getFromCollection<T>(collectionUrl, { limit, skip });
+
+            items.push(...page.items);
+
+            skip += page.items.length;
+
+            if (total === undefined) {
+                total = page.total;
+            }
+
+            if (page.items.length < 1000)
+                break;
+        }
+
+        return items;
     }
 
     async getEntries(query : CfEntryQuery) {

@@ -7,6 +7,7 @@ import { WebServerModule } from '@alterior/web-server';
 import { Context, Options } from './common';
 import { PullService } from './service/pull.service';
 import { SchemaService } from './service/schema.service';
+import { ContentfulManagementService } from './service/contentful-management';
 
 @Injectable()
 export class DiscontentedCli {
@@ -14,7 +15,8 @@ export class DiscontentedCli {
         private roles : RolesService,
         private context : Context,
         private schemaService : SchemaService,
-        private pullService : PullService
+        private pullService : PullService,
+        private contentfulManagement : ContentfulManagementService
     ) {
     }
 
@@ -134,18 +136,16 @@ export class DiscontentedCli {
         let filename = params[0];
 
         try {
-            let result = await contentfulExport({
-                exportDir: 'exported-content',
-                downloadAssets: true,
-                ...this.context.definition.contentful
-            });
 
+            let store = await this.contentfulManagement.fetchStore();
 
             console.log(`Writing Contentful data to '${filename}'...`);
-            fs.writeFileSync(filename, JSON.stringify(result));
+            fs.writeFileSync(filename, JSON.stringify(store));
 
         } catch (e) {
-            console.error(`Caught error while exporting from Contentful: ${e}`);
+            console.error(`Caught error while exporting from Contentful:`);
+            console.error(e);
+            
             return;
         }
     }

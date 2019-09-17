@@ -7,12 +7,14 @@ import { Injectable } from "@alterior/di";
 import { Context } from "../common";
 import { DatabaseService } from "../database";
 import { SchemaMigrator } from "../schema-migrator";
+import { ContentfulManagementService } from './contentful-management';
 
 @Injectable()
 export class SchemaService {
     constructor(
         private context : Context,
-        private database : DatabaseService
+        private database : DatabaseService,
+        private contentfulManagement : ContentfulManagementService
     ) {
 
     }
@@ -20,7 +22,7 @@ export class SchemaService {
     async migrate() {
         
         let oldSchema = this.context.schema;
-        let newSchema = await this.context.fetchSchemaFromContentful();
+        let newSchema = await this.contentfulManagement.fetchSchema();
 
         let migrator = new SchemaMigrator(this.context);
 

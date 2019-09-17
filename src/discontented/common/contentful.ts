@@ -217,7 +217,8 @@ export interface CfEntry extends CfSpaceResource, CfEntryDefinition {
 export interface CfStore {
     contentTypes? : CfType[];
     assets? : CfAsset[];
-
+    snapshots? : CfSnapshot[];
+    
     editorInterfaces? : any[]; // dont care
     locales? : any[]; // dont care
     webhooks? : any[]; // dont care

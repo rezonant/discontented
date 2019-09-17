@@ -1,8 +1,6 @@
 import * as changeCase from 'change-case';
 import * as fs from 'fs';
 import * as pg from 'pg';
-import * as contentfulExport from 'contentful-export';
-
 import { CfTypeField, CfEntry, CfType, CfSpaceCredentials, CfStore } from './contentful';
 import { Options } from './options';
 import { InjectionToken, Inject, Optional, Injectable } from '@alterior/di';
@@ -22,7 +20,7 @@ export class Context {
     get spaceId() {
         return this.definition.contentful.spaceId;
     }
-    
+
     get migrationDirectory() {
         return this.definition.migrationDirectory || 'migrations';
     }
@@ -65,41 +63,6 @@ export class Context {
 
     private typeIdToTableName = new Map<string, string>();
     private tableNameToTypeId = new Map<string, string>();
-
-    async fetchStore(): Promise<CfStore> {
-        console.log(`Fetching data from Contentful...`);
-
-        let result;
-
-        result = await contentfulExport({
-            skipContent: false,
-            downloadAsset: false,
-            skipRoles: true,
-            skipWebhooks: true,
-            saveFile: false,
-
-            ...this.definition.contentful
-        });
-
-        return result;
-    }
-
-    async fetchSchemaFromContentful(): Promise<CfStore> {
-        console.log(`Fetching schema from Contentful...`);
-
-        let result;
-
-        result = await contentfulExport({
-            skipContent: true,
-            skipRoles: true,
-            skipWebhooks: true,
-            saveFile: false,
-
-            ...this.definition.contentful
-        });
-
-        return result;
-    }
 
     saveCurrentSchema(schema : CfStore) {        
         console.log(`Saving Contentful schema to ${this.schemaFile}`);

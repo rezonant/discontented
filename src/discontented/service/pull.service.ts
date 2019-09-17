@@ -34,7 +34,7 @@ export class PullService {
 
     async importAll() {
         console.log(`Discontented: Exporting content from Contentful space '${this.context.definition.contentful.spaceId}'...`);
-        let store = await this.context.fetchStore();
+        let store = await this.contentfulManagement.fetchStore();
         let importer = new BatchImporter(this.context, store, new OfflineAssetLocator(store));
 
         console.log(`Discontented: Creating SQL DML for ${store.entries.length} entries...`);
