@@ -218,6 +218,7 @@ export interface CfStore {
     contentTypes? : CfType[];
     assets? : CfAsset[];
     snapshots? : CfSnapshot[];
+    publishedEntries? : CfEntry[];
     
     editorInterfaces? : any[]; // dont care
     locales? : any[]; // dont care
@@ -225,4 +226,24 @@ export interface CfStore {
     roles? : any[]; // dont care
 
     entries? : CfEntry[];
+}
+
+export interface CfResourceQuery {
+    limit? : number;
+    skip? : number;
+}
+
+export interface CfEntryQuery extends CfResourceQuery {
+    content_type? : string;
+    select? : string;
+    links_to_entry? : string;
+    order? : string;
+    mimetype_group? : string;
+    locale? : string;
+
+    [key : string]: any;
+}
+
+export interface CfAssetQuery extends CfResourceQuery {
+
 }

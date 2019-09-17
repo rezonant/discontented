@@ -22,6 +22,7 @@ export interface ContentfulOptions {
     spaceId : string;
     environmentId? : string;
     managementToken : string;
+    deliveryToken : string;
 }
 
 export interface Options {

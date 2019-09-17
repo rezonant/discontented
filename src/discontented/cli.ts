@@ -140,7 +140,7 @@ export class DiscontentedCli {
             let store = await this.contentfulManagement.fetchStore();
 
             console.log(`Writing Contentful data to '${filename}'...`);
-            fs.writeFileSync(filename, JSON.stringify(store));
+            fs.writeFileSync(filename, JSON.stringify(store, undefined, 2));
 
         } catch (e) {
             console.error(`Caught error while exporting from Contentful:`);
