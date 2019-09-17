@@ -46,6 +46,38 @@ export interface CfOrganizationSys {
     createdAt : string;
     updatedAt : string;
 }
+
+export interface CfAssetFileImageSize {
+    width : number;
+    height : number;
+}
+
+export interface CfAssetFileDetails {
+    size : number;
+    image : CfAssetFileImageSize;
+}
+
+export interface CfAssetFile {
+    contentType : string;
+    fileName : string;
+    url : string;
+    details : CfAssetFileDetails;
+}
+
+export interface CfAssetFields {
+    title : CfLocalizedValue<string>;
+    file : CfLocalizedValue<CfAssetFile>;
+}
+
+export interface CfAssetSys extends CfSpaceResourceSys {
+    type : 'Asset';
+}
+
+export interface CfAsset extends CfSpaceResource {
+    sys : CfAssetSys;
+    fields : CfAssetFields;
+}
+
 export interface CfOrganization {
     sys : CfOrganizationSys;
     name : string;
@@ -184,6 +216,8 @@ export interface CfEntry extends CfSpaceResource, CfEntryDefinition {
 
 export interface CfStore {
     contentTypes? : CfType[];
+    assets? : CfAsset[];
+
     editorInterfaces? : any[]; // dont care
     locales? : any[]; // dont care
     webhooks? : any[]; // dont care

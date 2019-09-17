@@ -19,6 +19,10 @@ export class Context {
             this.definition = {};
     }
 
+    get spaceId() {
+        return this.definition.contentful.spaceId;
+    }
+    
     get migrationDirectory() {
         return this.definition.migrationDirectory || 'migrations';
     }
@@ -63,8 +67,21 @@ export class Context {
     private tableNameToTypeId = new Map<string, string>();
 
     async fetchStore(): Promise<CfStore> {
-        
-        throw new Error("Method not implemented.");
+        console.log(`Fetching data from Contentful...`);
+
+        let result;
+
+        result = await contentfulExport({
+            skipContent: false,
+            downloadAsset: false,
+            skipRoles: true,
+            skipWebhooks: true,
+            saveFile: false,
+
+            ...this.definition.contentful
+        });
+
+        return result;
     }
 
     async fetchSchemaFromContentful(): Promise<CfStore> {
@@ -100,6 +117,13 @@ export class Context {
     }
     
     serializeValue(value : any, quoteChar = `'`) : string {
+
+        if (value === undefined || value === null)
+            return 'NULL';
+        
+        if (value[this.defaultLocalization] !== undefined)
+            return this.serializeValue(value[this.defaultLocalization]);
+
         if (typeof value === 'string') {
             return `${quoteChar}${value.replace(
                             new RegExp(quoteChar, 'g'), `${quoteChar}${quoteChar}`
@@ -107,13 +131,16 @@ export class Context {
         } else if (typeof value === 'number') {
             return `${value}`;
         } else if (typeof value === 'boolean') {
-            return value ? 'true' : 'false';
+            return value ? 'TRUE' : 'FALSE';
         } else if (value instanceof Date) {
             return value.toISOString();
         } else if (value instanceof Array || value.length !== undefined) {
             let array = Array.from(<any[]>value);
 
             return this.serializeValue(`{${array.map(x => this.serializeValue(x, `"`)).join(', ')}}`);
+        
+        } else if (typeof value === 'object') {
+            return this.serializeValue(JSON.stringify(value));
         } else {
             throw new Error(`Could not serialize value: ${JSON.stringify(value)}`);
         }

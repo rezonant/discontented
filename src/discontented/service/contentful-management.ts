@@ -1,18 +1,25 @@
 import { Injectable } from "@alterior/di";
-import { Context, CfArray, CfSpace, CfEnvironment, CfOrganization, CfEntry, CfSnapshot } from "../common";
+import { Context, CfArray, CfSpace, CfEnvironment, CfOrganization, CfEntry, CfSnapshot, CfAsset } from "../common";
 import { timeout } from "@alterior/common";
 
-export interface CfEntryQuery {
-    content_type : string;
-    select : string;
-    links_to_entry : string;
-    order : string;
-    limit : number;
-    skip : number;
-    mimetype_group : string;
-    locale : string;
+export interface CfResourceQuery {
+    limit? : number;
+    skip? : number;
+}
+
+export interface CfEntryQuery extends CfResourceQuery {
+    content_type? : string;
+    select? : string;
+    links_to_entry? : string;
+    order? : string;
+    mimetype_group? : string;
+    locale? : string;
 
     [key : string]: any;
+}
+
+export interface CfAssetQuery extends CfResourceQuery {
+
 }
 
 @Injectable()
@@ -159,6 +166,14 @@ export class ContentfulManagementService {
         return await this.delete(`/spaces/${this.spaceId}/environments/${this.environmentId}/entries/${entryId}/published`, {
             'X-Contentful-Version': `${version}`
         });
+    }
+
+    async getAsset(spaceId : string, envId : string, assetId : string) {
+        return await this.get<CfAsset>(`/spaces/${spaceId}/environments/${envId}/assets/${assetId}`)
+    }
+
+    async getAssets(spaceId : string, envId : string, query : CfAssetQuery) {
+        return await this.get<CfArray<CfAsset>>(`/spaces/${spaceId}/environments/${envId}/assets${this.queryString(query)}`)
     }
 
     async archiveEntry(spaceId : string, envId : string, entryId : string, version : number) {

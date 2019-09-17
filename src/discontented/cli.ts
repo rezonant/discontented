@@ -1,15 +1,10 @@
 import * as contentfulExport from 'contentful-export';
 import * as fs from 'fs';
-import * as path from 'path';
 
-import { Application, RolesService } from '@alterior/runtime';
-import { Module, Injectable } from '@alterior/di';
-import mkdirp = require('mkdirp');
+import { RolesService } from '@alterior/runtime';
+import { Injectable } from '@alterior/di';
 import { WebServerModule } from '@alterior/web-server';
-import { DatabaseService } from './database';
-import { Context, CfStore, Options } from './common';
-import { SchemaMigrator, BatchImporter } from './schema-migrator';
-import { timeout } from '@alterior/common';
+import { Context, Options } from './common';
 import { PullService } from './service/pull.service';
 import { SchemaService } from './service/schema.service';
 

@@ -1,6 +1,5 @@
 import { Controller, Post, RouteEvent, Body, Response } from "@alterior/web-server";
 import { CF_TOPIC_ENTRY_PUBLISH, CF_TOPIC_ENTRY_UNPUBLISH, Context, CfEntry } from "../common";
-import { BatchImporter } from "../schema-migrator";
 import * as bodyParser from 'body-parser';
 import { HttpError } from "@alterior/common";
 import { PullService } from "../service/pull.service";
