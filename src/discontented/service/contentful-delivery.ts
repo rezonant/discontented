@@ -112,12 +112,8 @@ export class ContentfulDeliveryService {
         return await this.get<CfEnvironment>(`/spaces/${this.spaceId}/environments/${this.environmentId}`);
     }
 
-    async getOrganizations() {
-        return await this.get<CfArray<CfOrganization>>(`/organizations`);
-    }
-
-    async getOrganization(orgId : string) {
-        return await this.get<CfOrganization>(`/organizations/${orgId}`);
+    async getEntry(spaceId : string, environmentId : string, entryId : string) {
+        return await this.get<CfEntry>(`/spaces/${spaceId}/environments/${environmentId}/entries/${entryId}`);
     }
 
     queryString(query : any) {
