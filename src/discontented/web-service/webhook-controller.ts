@@ -53,6 +53,8 @@ export class CfWebhookController {
         try {
             await this.pullService.importEntry(entry);
         } catch (e) {
+            console.error(`Caught error while importing entry:`);
+            console.error(e);
             return Response.serverError({
                 type: 'fault',
                 message: e.message
