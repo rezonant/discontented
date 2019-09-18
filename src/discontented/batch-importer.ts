@@ -26,9 +26,10 @@ export class BatchImporter {
         rows.push(...rowsToAdd);
     }
 
-    private async generateForEntry(entry : CfEntry) {
+    private async generateForEntry(latestEntry : CfEntry) {
+        let publishedEntry = this.source.publishedEntries.find(x => x.sys.id === latestEntry.sys.id);
         let entryImporter = new EntryImporter(this.context, this.source, new OfflineAssetLocator(this.source));
-        await entryImporter.generateData(entry);
+        await entryImporter.generateData(publishedEntry, latestEntry);
 
         for (let tableName of entryImporter.data.keys()) 
             this.addRows(tableName, entryImporter.data.get(tableName));

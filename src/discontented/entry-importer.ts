@@ -24,7 +24,15 @@ export class EntryImporter {
         rows.push(row);
     }
 
-    async generateData(entry : CfEntry) {
+    async generateData(entry : CfEntry, latestEntry : CfEntry) {
+
+        let published = true;
+
+        if (!entry) {
+            published = false;
+            entry = latestEntry;
+        }
+
         this.data = new Map<string, RowUpdate[]>();
 
         // generate sql-data
@@ -143,9 +151,9 @@ export class EntryImporter {
         rowData.set('updated_at', entry.sys.updatedAt);
         rowData.set('published_at', entry.sys.publishedAt);
         rowData.set('first_published_at', entry.sys.firstPublishedAt);
+        rowData.set('is_published', published);
         rowData.set('is_archived', false);
         rowData.set('is_deleted', false);
-        rowData.set('is_published', !!entry.sys.publishedAt);
         rowData.set('published_version', entry.sys.publishedVersion);
         rowData.set('raw', entry);
 
