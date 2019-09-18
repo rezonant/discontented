@@ -1,14 +1,14 @@
 import { Context, CfStore, CfEntry } from "./common";
 import { EntryImporter } from "./entry-importer";
 import { RowUpdate } from "./row-update";
-import { OfflineAssetLocator } from "./offline-asset-locator";
-import { AssetLocator } from "./asset-locator";
+import { OfflineContentfulLocator } from "./offline-asset-locator";
+import { ContentfulLocator } from "./asset-locator";
 
 export class BatchImporter {
     constructor(
         readonly context : Context,
         readonly source : CfStore,
-        readonly assetLocator : AssetLocator
+        readonly assetLocator : ContentfulLocator
     ) {
     }
 
@@ -28,7 +28,7 @@ export class BatchImporter {
 
     private async generateForEntry(latestEntry : CfEntry) {
         let publishedEntry = this.source.publishedEntries.find(x => x.sys.id === latestEntry.sys.id);
-        let entryImporter = new EntryImporter(this.context, this.source, new OfflineAssetLocator(this.source));
+        let entryImporter = new EntryImporter(this.context, this.source, new OfflineContentfulLocator(this.source));
         await entryImporter.generateData(publishedEntry, latestEntry);
 
         for (let tableName of entryImporter.data.keys()) 

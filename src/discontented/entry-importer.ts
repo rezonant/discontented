@@ -1,12 +1,12 @@
 import { Context, CfStore, CfEntry, CfLocalizedValue, CfLink } from "./common";
-import { AssetLocator } from "./asset-locator";
+import { ContentfulLocator } from "./asset-locator";
 import { RowUpdate } from "./row-update";
 
 export class EntryImporter {
     constructor(
         readonly context : Context,
         readonly schema : CfStore,
-        readonly assetLocator : AssetLocator
+        readonly assetLocator : ContentfulLocator
     ) {
     }
 

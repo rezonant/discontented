@@ -1,5 +1,6 @@
-import { CfAsset } from "./common";
+import { CfAsset, CfEntry } from "./common";
 
-export interface AssetLocator {
+export interface ContentfulLocator {
     retrieveAsset(spaceId : string, assetId : string) : Promise<CfAsset>;
+    retrievePublishedEntry(spaceId : string, entryId : string): Promise<CfEntry>;
 }
