@@ -1,6 +1,7 @@
 import { WebService, Mount, Get, Controller } from '@alterior/web-server';
 import { CfWebhookController } from './webhook-controller';
 import { Context } from '../common';
+import { PushController } from './push-controller';
 
 @Controller()
 export class DiscontentedService {
@@ -11,6 +12,9 @@ export class DiscontentedService {
 
     @Mount('/webhook')
     webhookController : CfWebhookController;
+
+    @Mount('/push')
+    pushController : PushController;
 
     @Get('/')
     get() {

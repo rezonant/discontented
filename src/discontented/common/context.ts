@@ -46,9 +46,22 @@ export class Context {
                     return null;
                 this._schema = JSON.parse(fs.readFileSync(this.schemaFile).toString());
             }
+
+            if (this._schema) {
+                this.initializeTableToTypeMaps();
+            }
         }
 
         return this._schema;
+    }
+
+    initializeTableToTypeMaps() {
+        this.typeIdToTableName = new Map<string, string>();
+        this.tableNameToTypeId = new Map<string, string>();
+
+        let schema = this.schema;
+        for (let type of schema.contentTypes)
+            this.addMappingForTypeId(type.sys.id);
     }
 
     get dbConnectionOptions(): pg.ClientConfig {
@@ -71,6 +84,11 @@ export class Context {
 
     addMappingForTypeId(typeId : string) {
         let tableName = this.getTableNameForTypeId(typeId);
+
+        //console.log(`Creating map for type ${typeId}`);
+        //console.log(` MAP[type->table]: ${typeId} -> ${tableName}`);
+        //console.log(` MAP[table->type]: ${tableName} -> ${typeId}`);
+        
         this.typeIdToTableName.set(typeId, tableName);
         this.tableNameToTypeId.set(tableName, typeId);
     }

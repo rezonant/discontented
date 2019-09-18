@@ -1,9 +1,16 @@
+import * as randomstring from 'randomstring';
 
 // For reference of available webhook Topic values: 
 // https://www.contentful.com/developers/docs/references/content-management-api/#/reference/webhooks
 
 export const CF_TOPIC_ENTRY_PUBLISH = 'ContentManagement.Entry.publish';
 export const CF_TOPIC_ENTRY_UNPUBLISH = 'ContentManagement.Entry.unpublish';
+export const CF_TOPIC_ENTRY_SAVE = 'ContentManagement.Entry.save';
+export const CF_TOPIC_ENTRY_AUTO_SAVE = 'ContentManagement.Entry.auto_save';
+export const CF_TOPIC_ENTRY_DELETE = 'ContentManagement.Entry.delete';
+export const CF_TOPIC_ENTRY_ARCHIVE = 'ContentManagement.Entry.archive';
+export const CF_TOPIC_ENTRY_UNARCHIVE = 'ContentManagement.Entry.unarchive';
+export const CF_TOPIC_ENTRY_CREATE = 'ContentManagement.Entry.create';
 
 export interface CfSpaceCredentials {
     spaceId: string;
@@ -144,8 +151,8 @@ export interface CfTypeField {
 export interface CfResourceSys {
     type : string;
     id : string;
-    createdAt : string;
-    updatedAt : string;
+    createdAt? : string;
+    updatedAt? : string;
 }
 
 export interface CfResource {
@@ -242,6 +249,13 @@ export interface CfEntryQuery extends CfResourceQuery {
     locale? : string;
 
     [key : string]: any;
+}
+
+export function generateCfid() {
+    return randomstring.generate({
+        charset: 'hex',
+        length: 64
+    });
 }
 
 export interface CfAssetQuery extends CfResourceQuery {

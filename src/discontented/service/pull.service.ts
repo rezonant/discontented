@@ -18,6 +18,38 @@ export class PullService {
 
     }
 
+    async setEntryDeleted(entry : CfEntry) {
+        let tableName = this.context.getTableNameForEntry(entry);
+        await this.database.query(
+            `UPDATE ${tableName} SET is_deleted = true WHERE cfid = $1`, 
+            entry.sys.id
+        );
+    }
+
+    async setEntryArchived(entry : CfEntry) {
+        let tableName = this.context.getTableNameForEntry(entry);
+        await this.database.query(
+            `UPDATE ${tableName} SET is_archived = true WHERE cfid = $1`, 
+            entry.sys.id
+        );
+    }
+
+    async setEntryUnarchived(entry : CfEntry) {
+        let tableName = this.context.getTableNameForEntry(entry);
+        await this.database.query(
+            `UPDATE ${tableName} SET is_archived = false WHERE cfid = $1`, 
+            entry.sys.id
+        );
+    }
+
+    async setEntryUnpublished(entry : CfEntry) {
+        let tableName = this.context.getTableNameForEntry(entry);
+        await this.database.query(
+            `UPDATE ${tableName} SET is_published = false WHERE cfid = $1`, 
+            entry.sys.id
+        );
+    }
+
     async importEntry(entry: CfEntry) {
         if (!this.context.schema)
             throw new Error(`No schema loaded`);

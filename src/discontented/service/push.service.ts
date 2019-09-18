@@ -1,5 +1,5 @@
 import { Injectable } from "injection-js";
-import { Context, CfEntry, CfEntryDefinition, CfLink } from "../common";
+import { Context, CfEntry, CfEntryDefinition, CfLink, CfEntrySys } from "../common";
 import { DatabaseService } from "../database";
 import { ContentfulManagementService } from "./contentful-management";
 
@@ -16,11 +16,6 @@ export class PushService {
         private database : DatabaseService,
         private contentfulManagement : ContentfulManagementService
     ) {
-    }
-
-    private async putEntry(id : string, entry : CfEntryDefinition) {
-        console.log(`PUTTING ENTRY ${id} to:`);
-        console.log(JSON.stringify(entry, undefined, 2));
     }
 
     private async getEntry(id : string): Promise<CfEntry> {
@@ -46,12 +41,31 @@ export class PushService {
         let tableName = this.context.getTableNameForType(type);
 
         let rowData = await this.database.getRowByCfid(tableName, cfid);
+        let entry : CfEntry = {
+            sys: <any><Partial<CfEntrySys>>{
+                    id: updateDef.cfid,
+                    space: {
+                        sys: {
+                            type: 'Link',
+                            linkType: 'Space',
+                            id: this.context.spaceId
+                        }
+                    },
+                    version: parseInt(<any>updateDef.cfVersion),
+                    contentType: {
+                        sys: {
+                            type: 'Link',
+                            linkType: 'ContentType',
+                            id: typeId
+                        }
+                    }
+            },
+            fields
+        };
 
         for (let field of type.fields) {
             let columnName = this.context.getColumnNameForField(field);
             let value = rowData[columnName];
-            if (value === undefined || value === null)
-                continue;
             
             let isArray = false;
             let fieldType = field.type;
@@ -62,6 +76,8 @@ export class PushService {
                 fieldType = field.items.type;
                 linkType = field.items.linkType;
             }
+
+            //console.log(`Populating field ${field.id}, type=${fieldType}[array=${isArray ? '1':'0'}, linkType=${linkType || '<none>'}`);
 
             if (fieldType === 'Link') {
                 if (isArray) {
@@ -105,11 +121,22 @@ export class PushService {
                     [this.context.defaultLocalization]: value
                 }
             }
+            
+            //console.log(` - Value for field ${field.id}: ${JSON.stringify(fields[field.id], undefined, 2)}`);
+
         }
         
+
         try {
-            await this.putEntry(cfid, { fields });
+            console.log(`Updating entry ${entry.sys.id} version=${entry.sys.version} with content:`);
+            console.log(JSON.stringify(entry, undefined, 2));
+
+            await this.contentfulManagement.updateEntry(entry);
+
+            console.log(`Saved successfully.`);
         } catch (e) {
+            console.error(`Caught error while putting entry to Contentful:`);
+            console.error(e);
             throw new Error(`Caught error while putting entry to Contentful: ${e}`);
         }
     }

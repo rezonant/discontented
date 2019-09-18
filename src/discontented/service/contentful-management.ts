@@ -1,8 +1,8 @@
 import { Injectable } from "@alterior/di";
-import { Context, CfArray, CfSpace, CfEnvironment, CfOrganization, CfEntry, CfSnapshot, CfAsset, CfStore, CfResourceQuery, CfEntryQuery, CfAssetQuery } from "../common";
+import { Context, CfArray, CfSpace, CfEnvironment, CfOrganization, CfEntry, CfSnapshot, CfAsset, CfStore, CfResourceQuery, CfEntryQuery, CfAssetQuery, CfEntryDefinition, generateCfid } from "../common";
 import { timeout } from "@alterior/common";
 import * as contentfulExport from 'contentful-export';
-import fetch from 'node-fetch';
+import fetch, { HeadersInit } from 'node-fetch';
 import { RequestInit, BodyInit } from 'node-fetch';
 import { ContentfulDeliveryService } from "./contentful-delivery";
 
@@ -15,7 +15,7 @@ export class ContentfulManagementService {
     ) {
     }
 
-    async request<T>(method : string, url : string, body? : any, state? : any): Promise<T> {
+    async request<T>(method : string, url : string, body? : any, headers? : HeadersInit, state? : any): Promise<T> {
         if (!state) {
             state = {
                 retry: 0
@@ -24,9 +24,9 @@ export class ContentfulManagementService {
 
         let requestInit : RequestInit = {
             method,
-            headers: {
+            headers: Object.assign({}, headers, {
                 Authorization: `Bearer ${this.context.definition.contentful.managementToken}`
-            }
+            })
         };
 
         if (body) {
@@ -49,8 +49,11 @@ export class ContentfulManagementService {
             await timeout(secondsRemaining * 1000 + jitter);
 
             state.retry += 1;
-            await this.request(method, url, body, state);
+            await this.request(method, url, body, headers, state);
         } else if (response.status >= 400) {
+            console.error(`Got bad response from Contentful: ${response.status} ${response.statusText}`);
+            console.error(`JSON:`);
+            console.error(await response.json());
             throw response;
         }
 
@@ -217,6 +220,33 @@ export class ContentfulManagementService {
 
     async getEntry(entryId : string) {
         return await this.get<CfEntry>(`/spaces/${this.spaceId}/environments/${this.environmentId}/entries/${entryId}`);
+    }
+
+    async createEntry(contentTypeId : string, entry : CfEntryDefinition) {
+
+        let entryId = generateCfid();
+
+        console.log(`createEntry(sys.contentType=${contentTypeId}, sys.id=${entryId})`);
+        return await this.put(
+            `/spaces/${this.spaceId}/environments/${this.environmentId}/entries/${entryId}`, 
+            entry, 
+            {
+                'X-Contentful-Content-Type': contentTypeId
+            }
+        );
+    }
+
+    async updateEntry(entry : CfEntry) {
+        console.log(`updateEntry(sys.id=${entry.sys.id}, version=${entry.sys.version})`);
+        return await this.put(
+            `/spaces/${this.spaceId}/environments/${this.environmentId}/entries/${entry.sys.id}`, 
+            entry,
+            {
+                'Content-Type': 'application/vnd.contentful.management.v1+json',
+                'X-Contentful-Version': `${entry.sys.version}`,
+                'X-Contentful-Content-Type': entry.sys.contentType.sys.id
+            }
+        );
     }
 
     async getSnapshots(entryId : string, query : any) {
