@@ -2,16 +2,18 @@ import { Injectable } from "@alterior/di";
 import { Context, CfEntry } from "../common";
 import { DatabaseService } from "../database";
 import { BatchImporter } from "../batch-importer";
-import { OfflineAssetLocator } from "../offline-asset-locator";
+import { OfflineContentfulLocator } from "../offline-asset-locator";
 import { ContentfulManagementService } from "./contentful-management";
-import { OnlineAssetLocator } from "../online-asset-locator";
+import { OnlineContentfulLocator } from "../online-asset-locator";
+import { ContentfulDeliveryService } from "./contentful-delivery";
 
 @Injectable()
 export class PullService {
     constructor(
         private context : Context,
         private database : DatabaseService,
-        private contentfulManagement : ContentfulManagementService
+        private contentfulManagement : ContentfulManagementService,
+        private contentfulDelivery : ContentfulDeliveryService
     ) {
 
     }
@@ -20,11 +22,10 @@ export class PullService {
         if (!this.context.schema)
             throw new Error(`No schema loaded`);
         
-        let migrator = new BatchImporter(this.context, this.context.schema, new OnlineAssetLocator(this.contentfulManagement));
+        let migrator = new BatchImporter(this.context, this.context.schema, new OnlineContentfulLocator(this.contentfulManagement, this.contentfulDelivery));
         let sqlQueries = await migrator.generateBatchSql([entry]);
         
-        console.log(`Received updated data for entry ${entry.sys.id}:`);
-        sqlQueries.forEach(line => console.log(`- ${line}`));
+        console.log(`Received updated data for entry ${entry.sys.id}`);
 
         for (let sqlQuery of sqlQueries)
             await this.database.query(sqlQuery);
@@ -35,7 +36,7 @@ export class PullService {
     async importAll() {
         console.log(`Discontented: Exporting content from Contentful space '${this.context.definition.contentful.spaceId}'...`);
         let store = await this.contentfulManagement.fetchStore();
-        let importer = new BatchImporter(this.context, store, new OfflineAssetLocator(store));
+        let importer = new BatchImporter(this.context, store, new OfflineContentfulLocator(store));
 
         console.log(`Discontented: Creating SQL DML for ${store.entries.length} entries...`);
         let sqlCommands = await importer.generateBatchSql();
