@@ -12,12 +12,17 @@ export class DatabaseService {
     private async connect() {
         if (this.clientReady)
             return await this.clientReady;
+
+        console.log(`Connecting to PostgreSQL...`);
         this.client = new pg.Client(this.context.definition.dbConnection);
-        this.clientReady = new Promise(async (resolve, reject) => {
+        return this.clientReady = new Promise(async (resolve, reject) => {
             try {
+                console.log(`PG client: connecting...`);
                 await this.client.connect();
+                console.log(`PG client: success`);
                 resolve();
             } catch (e) {
+                console.log(`PG client: failure`);
                 reject(e);
             }
         })

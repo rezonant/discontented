@@ -50,14 +50,17 @@ export class SchemaService {
     }
 
     async applyMigrations() {
+        console.log(`Apply migrations: Started`);
 
-        
         let result : pg.QueryResult;
         let appliedVersions : string[] = [];
                 
         try {
+            console.log(`Acquiring current version from DB...`);
             result = await this.database.query(`SELECT version FROM ${this.context.tablePrefix}migrations`);
             appliedVersions = result.rows.map(row => row.version);
+
+            console.log(`Found ${appliedVersions.length} versions in DB...`);
 
         } catch (e) {
             if (e.code !== '42P01') {
@@ -65,6 +68,10 @@ export class SchemaService {
                 console.error(e);
                 console.log(JSON.stringify(e));
 
+                throw e;
+            } else {
+                console.error(`Caught error while trying to fetch applied schema versions:`);
+                console.error(e);
                 throw e;
             }
         }
