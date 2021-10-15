@@ -86,13 +86,7 @@ export class EntryImporter {
                         if (link) {
                             let asset = await this.assetLocator.retrieveAsset(this.context.spaceId, link.sys.id);
 
-                            if (asset) {
-                                if (!asset.fields.file) {
-                                    console.error(`Expected a 'file' field on this asset, but it wasn't present! Here is the asset object:`);
-                                    console.dir(asset);
-                                    throw new Error(`No file present on Asset!`);
-                                }
-                                
+                            if (asset && asset.fields.file) {
                                 if (!asset.fields.file[this.context.defaultLocalization].url) {
                                     console.error(`Entry ${entry.sys.id} [${entry.sys.contentType.sys.id}]: ${fieldId}: Could not get URL from asset ${link.sys.id}:`);
                                     console.log(JSON.stringify(asset, undefined, 2));
@@ -102,7 +96,10 @@ export class EntryImporter {
 
                                 rowData.set(columnName, url);
                             } else {
-                                rowData.set(columnName, `cf-asset-missing:${link.sys.id}`);
+                                if (!asset)
+                                    rowData.set(columnName, `cf-asset-missing:${link.sys.id}`);
+                                else if (!asset.fields.file)
+                                    rowData.set(columnName, `cf-asset-file-missing:${link.sys.id}`);
                             }
                         }
                     }
