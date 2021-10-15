@@ -54,7 +54,7 @@ export class SchemaService {
 
         let result : pg.QueryResult;
         let appliedVersions : string[] = [];
-                
+
         try {
             console.log(`Acquiring current version from DB...`);
             result = await this.database.query(`SELECT version FROM ${this.context.tablePrefix}migrations`);
@@ -63,12 +63,10 @@ export class SchemaService {
             console.log(`Found ${appliedVersions.length} versions in DB...`);
 
         } catch (e) {
-            if (e.code !== '42P01') {
-                console.error(`Caught error while trying to fetch applied schema versions:`);
-                console.error(e);
-                console.log(JSON.stringify(e));
-
-                throw e;
+            if (e.code === '42P01') {
+                // relation doesn't exist: run all migrations
+                console.info(`No ${this.context.tablePrefix}migrations table is present, applying all migrations...`);
+                appliedVersions = [];
             } else {
                 console.error(`Caught error while trying to fetch applied schema versions:`);
                 console.error(e);
