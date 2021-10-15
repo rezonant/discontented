@@ -102,14 +102,17 @@ export class SchemaMigrator {
                 Date: 'TIMESTAMP',
                 Symbol: 'VARCHAR(256)',
                 Text: 'TEXT',
+                RichText: 'TEXT',
                 Location: 'JSONB',
                 Object: 'JSONB'
             };
 
             dataType = simpleTypes[fieldType];
 
-            if (!dataType)
-                dataType = `UNKNOWN[${fieldType}]`;
+            if (!dataType) {
+                throw new Error(`Unknown Contentful type ${fieldType}! Discontented must be patched to add support for this!`);
+                //dataType = `UNKNOWN[${fieldType}]`;
+            }
 
             if (isArray) {
                 // this is a simple array
