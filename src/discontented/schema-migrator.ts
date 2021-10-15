@@ -18,10 +18,28 @@ export class SchemaMigrator {
             let existingField = oldType.fields.find(x => x.id === field.id);
 
             if (existingField) {
-                if (existingField.type !== field.type) {
-                    throw new Error(`Field '${field.id}' of type '${newType.name}' changed from type '${existingField.type}' to '${field.type}'. This is not supported!`);
-                } else if (existingField.linkType !== field.linkType) {
-                    throw new Error(`Field '${field.id}' of type '${newType.name}' changed from link type '${existingField.linkType}' to '${field.linkType}'. This is not supported!`);
+
+                // Some types are interchangeable, such as Text and RichText
+                
+                let allowedChanges = [
+                    [ 'Text', 'RichText' ]
+                ];
+
+                let allowed = false;
+
+                for (let allowedChange of allowedChanges) {
+                    if (allowedChange.includes(existingField.type) && allowedChange.includes(field.type)) {
+                        allowed = true;
+                        break;
+                    }
+                }
+
+                if (!allowed) {
+                    if (existingField.type !== field.type) {
+                        throw new Error(`Field '${field.id}' of type '${newType.name}' changed from type '${existingField.type}' to '${field.type}'. This is not supported!`);
+                    } else if (existingField.linkType !== field.linkType) {
+                        throw new Error(`Field '${field.id}' of type '${newType.name}' changed from link type '${existingField.linkType}' to '${field.linkType}'. This is not supported!`);
+                    }
                 }
             } else {
                 // New field, ALTER TABLE
