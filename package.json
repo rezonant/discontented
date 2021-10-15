@@ -16,8 +16,8 @@
   "devDependencies": {
     "@types/body-parser": "^1.17.1",
     "@types/express": "^4.17.1",
-    "@types/node": "^12.7.5",
-    "@types/pg": "^7.11.1",
+    "@types/node": "^12.20.15",
+    "@types/pg": "^8.6.0",
     "typescript": "^3.6.3"
   },
   "dependencies": {
@@ -31,7 +31,7 @@
     "contentful-export": "^7.6.0",
     "mkdirp": "^0.5.1",
     "node-fetch": "^2.6.0",
-    "pg": "^7.12.1",
+    "pg": "^8.6.0",
     "randomstring": "^1.1.5",
     "source-map-support": "^0.5.13",
     "sourcemapped-stacktrace": "^1.1.11"
