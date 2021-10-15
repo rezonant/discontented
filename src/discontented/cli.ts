@@ -186,6 +186,7 @@ export class DiscontentedCli {
      * @param params 
      */
     async applyMigrations(params : string[]) {
+        console.log(`command: applyMigrations`);
         await this.schemaService.applyMigrations();
     }
 
