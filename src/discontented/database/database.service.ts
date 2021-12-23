@@ -32,8 +32,6 @@ export class DatabaseService {
         if (this.clientReady)
             return await this.clientReady;
 
-        console.log(`Connecting to PostgreSQL...`);
-
         let config = this.config || {};
         if (process.env.DB_HOSTNAME)
             config.host = process.env.DB_HOSTNAME;
@@ -43,6 +41,8 @@ export class DatabaseService {
             config.password = process.env.DB_PASSWORD;
         if (process.env.DB_NAME)
             config.database = process.env.DB_NAME;
+
+        console.log(`Connecting to PostgreSQL (${config.user}@${config.host}/${config.database})...`);
 
         this.client = new pg.Client(config);
         return this.clientReady = new Promise(async (resolve, reject) => {
