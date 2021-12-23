@@ -15,18 +15,15 @@ export class DatabaseService {
 
         console.log(`Connecting to PostgreSQL...`);
 
-        let config = this.context.definition.dbConnection;
-        if (!config) {
-            config = {};
-            if (process.env.DB_HOSTNAME)
-                config.host = process.env.DB_HOSTNAME;
-            if (process.env.DB_USERNAME)
-                config.user = process.env.DB_USERNAME;
-            if (process.env.DB_PASSWORD)
-                config.password = process.env.DB_PASSWORD;
-            if (process.env.DB_NAME)
-                config.database = process.env.DB_NAME;
-        }
+        let config = this.context.definition.dbConnection || {};
+        if (process.env.DB_HOSTNAME)
+            config.host = process.env.DB_HOSTNAME;
+        if (process.env.DB_USERNAME)
+            config.user = process.env.DB_USERNAME;
+        if (process.env.DB_PASSWORD)
+            config.password = process.env.DB_PASSWORD;
+        if (process.env.DB_NAME)
+            config.database = process.env.DB_NAME;
 
         this.client = new pg.Client(config);
         return this.clientReady = new Promise(async (resolve, reject) => {
