@@ -19,6 +19,8 @@ export class DiscontentedCli {
         private contentfulManagement : ContentfulManagementService,
         private db : DatabaseService
     ) {
+        if (process.env.DCF_CONFIG)
+            this.configFile = process.env.DCF_CONFIG;
     }
 
     private configFile : string = 'discontented.json';
