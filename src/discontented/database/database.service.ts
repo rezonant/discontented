@@ -1,12 +1,34 @@
 import { Injectable } from "@alterior/di";
 import * as pg from 'pg';
 import { Context } from "../common";
+import * as fs from 'fs';
 
 @Injectable()
 export class DatabaseService {
     constructor(
         readonly context : Context
     ) {
+        this.initialize();
+    }
+
+    configFile = 'database.json';
+    config : pg.ClientConfig;
+
+    private initialize() {
+        if (!fs.existsSync(this.configFile)) {
+            console.error(`dcf: Error: Could not open config file '${this.configFile}'`);
+            return false;
+        }
+
+        let config : pg.ClientConfig;
+        
+        try {
+            config = JSON.parse(fs.readFileSync(this.configFile).toString());
+        } catch (e) {
+            throw new Error(`Failed to parse config file: ${e}`);
+        }
+
+        this.config = config;
     }
 
     private async connect() {
@@ -15,7 +37,7 @@ export class DatabaseService {
 
         console.log(`Connecting to PostgreSQL...`);
 
-        let config = this.context.definition.dbConnection || {};
+        let config = this.config || {};
         if (process.env.DB_HOSTNAME)
             config.host = process.env.DB_HOSTNAME;
         if (process.env.DB_USERNAME)
