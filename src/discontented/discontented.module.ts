@@ -3,8 +3,8 @@ import { DcfCommonModule, Context } from "./common";
 import { DatabaseModule } from "./database";
 import { ServiceModule } from "./service";
 import { AppOptions } from "@alterior/runtime";
-import { WebServiceModule } from "./web-service";
 import { DiscontentedCli } from "./cli";
+import { DiscontentedService } from "./web-service";
 
 @AppOptions()
 @Module({
@@ -12,7 +12,7 @@ import { DiscontentedCli } from "./cli";
         DcfCommonModule,
         DatabaseModule,
         ServiceModule,
-        WebServiceModule
+        DiscontentedService
     ],
     providers: [
         DiscontentedCli

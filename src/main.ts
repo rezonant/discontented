@@ -1,17 +1,22 @@
 #!/usr/bin/env node
+import '@alterior/platform-nodejs';
 
-import 'reflect-metadata';
-import 'source-map-support/register';
 import { Module } from '@alterior/di';
 import { DiscontentedModule, Context } from './discontented';
 import { RolesService, Application } from '@alterior/runtime';
 import { DiscontentedCli } from './discontented/cli';
+import { WebServerEngine } from '@alterior/web-server';
+import { ExpressEngine } from '@alterior/express';
+
+WebServerEngine.default = ExpressEngine;
 
 async function main() {
     let args = process.argv.slice();
 
     @Module({
-        imports: [ DiscontentedModule.configure(new Context()) ]
+        imports: [ 
+            DiscontentedModule.configure(new Context())
+        ]
     })
     class CliModule {
         constructor(

@@ -1,4 +1,4 @@
-import { Controller, Post, RouteEvent, Body, Response } from "@alterior/web-server";
+import { Controller, Post, WebEvent, Body, Response } from "@alterior/web-server";
 import { CF_TOPIC_ENTRY_PUBLISH, CF_TOPIC_ENTRY_UNPUBLISH, Context, CfEntry, CF_TOPIC_ENTRY_SAVE, CF_TOPIC_ENTRY_DELETE, CF_TOPIC_ENTRY_ARCHIVE, CF_TOPIC_ENTRY_UNARCHIVE, CF_TOPIC_ENTRY_CREATE } from "../common";
 import * as bodyParser from 'body-parser';
 import { HttpError } from "@alterior/common";
@@ -25,11 +25,11 @@ export class CfWebhookController {
             })
         ]
     })
-    async post(@Body() entry : CfEntry, event : RouteEvent) {
+    async post(@Body() entry : CfEntry) {
         if (!entry)
             return Response.badRequest();
 
-        let cfTopic = event.request.headers['x-contentful-topic'];
+        let cfTopic = WebEvent.request.headers['x-contentful-topic'];
 
         if (cfTopic === CF_TOPIC_ENTRY_UNPUBLISH) {
             await this.pullService.setEntryUnpublished(entry);

@@ -5,6 +5,7 @@
         "module": "commonjs",
         "emitDecoratorMetadata": true,
         "experimentalDecorators": true,
+        "esModuleInterop": true,
         "outDir": "dist"
     },
     "include": [

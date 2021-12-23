@@ -2,8 +2,15 @@ import { WebService, Mount, Get, Controller } from '@alterior/web-server';
 import { CfWebhookController } from './webhook-controller';
 import { Context } from '../common';
 import { PushController } from './push-controller';
-
-@Controller()
+import { DcfCommonModule } from '../common';
+@WebService({
+    imports: [
+        DcfCommonModule
+    ],
+    server: {
+        port: 3001
+    }
+})
 export class DiscontentedService {
     constructor(
         private context : Context

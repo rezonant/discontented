@@ -3,7 +3,6 @@ import * as fs from 'fs';
 
 import { RolesService } from '@alterior/runtime';
 import { Injectable } from '@alterior/di';
-import { WebServerModule } from '@alterior/web-server';
 import { Context, Options } from './common';
 import { PullService } from './service/pull.service';
 import { SchemaService } from './service/schema.service';
@@ -174,7 +173,7 @@ export class DiscontentedCli {
      * @param params 
      */
     async serve(params : string[]) {
-        this.roles.start(WebServerModule);
+        this.roles.roles.find(x => x.identifier === 'web-server').start();
     }
 
     /**

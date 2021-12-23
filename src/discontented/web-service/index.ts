@@ -1,1 +1,1 @@
-export * from './web-service.module';
+export * from './discontented-service';

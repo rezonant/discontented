@@ -1,4 +1,4 @@
-import { Injectable } from "injection-js";
+import { Injectable } from "@alterior/di";
 import { Context, CfEntry, CfEntryDefinition, CfLink, CfEntrySys } from "../common";
 import { DatabaseService } from "../database";
 import { ContentfulManagementService } from "./contentful-management";
