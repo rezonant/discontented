@@ -15,17 +15,14 @@ export class DatabaseService {
     config : pg.ClientConfig;
 
     private initialize() {
-        if (!fs.existsSync(this.configFile)) {
-            console.error(`dcf: Error: Could not open config file '${this.configFile}'`);
-            return false;
-        }
-
         let config : pg.ClientConfig;
         
-        try {
-            config = JSON.parse(fs.readFileSync(this.configFile).toString());
-        } catch (e) {
-            throw new Error(`Failed to parse config file: ${e}`);
+        if (fs.existsSync(this.configFile)) {
+            try {
+                config = JSON.parse(fs.readFileSync(this.configFile).toString());
+            } catch (e) {
+                throw new Error(`Failed to parse database config file: ${e}`);
+            }
         }
 
         this.config = config;
