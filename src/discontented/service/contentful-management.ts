@@ -1,7 +1,7 @@
 import { Injectable } from "@alterior/di";
 import { Context, CfArray, CfSpace, CfEnvironment, CfOrganization, CfEntry, CfSnapshot, CfAsset, CfStore, CfResourceQuery, CfEntryQuery, CfAssetQuery, CfEntryDefinition, generateCfid } from "../common";
 import { timeout } from "@alterior/common";
-import * as contentfulExport from 'contentful-export';
+import contentfulExport from 'contentful-export';
 import fetch, { HeadersInit } from 'node-fetch';
 import { RequestInit, BodyInit } from 'node-fetch';
 import { ContentfulDeliveryService } from "./contentful-delivery";
