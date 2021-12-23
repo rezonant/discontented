@@ -77,4 +77,8 @@ export class DatabaseService {
 
         return rowResult.rows.map(row => row[0]);
     }
+
+    async test() {
+        await this.connect();
+    }
 }

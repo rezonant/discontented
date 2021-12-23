@@ -27,6 +27,7 @@ export interface ContentfulOptions {
 
 export interface Options {
     tablePrefix? : string;
+    migrationTablePrefix? : string;
     tableMap? : TableMap;
     defaultLocalization? : string;
     schemaFile? : string;

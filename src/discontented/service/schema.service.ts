@@ -98,7 +98,7 @@ export class SchemaService {
 
                 console.log(`   * Marking as run`);
                 await this.database.query(
-                    `INSERT INTO ${this.context.tablePrefix}migrations (version) VALUES ($1) ON CONFLICT (version) DO NOTHING`, 
+                    `INSERT INTO ${this.context.migrationTablePrefix}migrations (version) VALUES ($1) ON CONFLICT (version) DO NOTHING`, 
                     migrationFile
                 );
 

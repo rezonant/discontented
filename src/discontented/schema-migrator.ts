@@ -22,7 +22,9 @@ export class SchemaMigrator {
                 // Some types are interchangeable, such as Text and RichText
                 
                 let allowedChanges = [
-                    [ 'Text', 'RichText' ]
+                    [ 'Text', 'RichText' ],
+                    [ 'Text', 'Symbol' ],
+                    [ 'Symbol', 'Text' ]
                 ];
 
                 let allowed = false;
@@ -95,7 +97,7 @@ export class SchemaMigrator {
             if (isArray) {
                 linkingTableName = `${table.tableName}_${this.context.transformIdentifier(field.id)}`
                 linkingTableDeclarationSql = 
-                      `CREATE TABLE ${linkingTableName} (\n`
+                      `CREATE TABLE IF NOT EXISTS ${linkingTableName} (\n`
                     + `    "owner_cfid" VARCHAR(64),\n`
                     + `    "item_cfid" VARCHAR(64) UNIQUE\n`
                     + `)`
@@ -181,7 +183,7 @@ export class SchemaMigrator {
         columnDefinitions.push(`"raw" JSONB`);
         
         table.tableDeclarationSql = 
-              `CREATE TABLE ${table.tableName} (\n` 
+              `CREATE TABLE IF NOT EXISTS ${table.tableName} (\n` 
             + `    ${columnDefinitions.join(`,\n    `)}\n`
             + `)`
         ;
@@ -222,7 +224,7 @@ export class SchemaMigrator {
             sql += `-- *\n`
             sql += `-- **\n`
             sql += `\n`;
-            sql += `CREATE TABLE ${this.context.tablePrefix}migrations (\n`
+            sql += `CREATE TABLE IF NOT EXISTS ${this.context.migrationTablePrefix}migrations (\n`
             sql += `    version VARCHAR(30) UNIQUE\n`;
             sql += `);\n`;
         }

@@ -75,19 +75,27 @@ export class PullService {
 
         console.log(`Importing into database [${sqlCommands.length} queries]...`);
 
+        let periodicUpdate = setInterval(() => {
+            console.log(`[Inserting] ${Math.round(count / sqlCommands.length * 100)}%  ${count} / ${sqlCommands.length}`);
+        }, 10*1000);
+
         let count = 0;
 
-        for (let sqlCommand of sqlCommands) {
-            try {
-                console.log(`INSERT ${count} / ${sqlCommands.length}`);
-                //console.log(`  ${sqlCommand.replace(/\n/g, `\n  `)}`);
-                await this.database.query(sqlCommand);
-                count += 1;
-            } catch (e) {
-                console.error(`Error occurred while running query '${sqlCommand}'`);
-                console.error(e);
-                throw e;
+        try {
+            for (let sqlCommand of sqlCommands) {
+                try {
+                    //console.log(`INSERT ${count} / ${sqlCommands.length}`);
+                    //console.log(`  ${sqlCommand.replace(/\n/g, `\n  `)}`);
+                    await this.database.query(sqlCommand);
+                    count += 1;
+                } catch (e) {
+                    console.error(`Error occurred while running query '${sqlCommand}'`);
+                    console.error(e);
+                    throw e;
+                }
             }
+        } finally {
+            clearInterval(periodicUpdate);
         }
 
         console.log(`Done!`);

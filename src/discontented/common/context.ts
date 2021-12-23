@@ -33,6 +33,10 @@ export class Context {
         return this.definition.tablePrefix;
     }
 
+    get migrationTablePrefix() {
+        return this.definition.migrationTablePrefix || this.definition.tablePrefix;
+    }
+
     private _schema : CfStore = null;
 
     get schemaFile() : string {

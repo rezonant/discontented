@@ -8,6 +8,7 @@ import { Context, Options } from './common';
 import { PullService } from './service/pull.service';
 import { SchemaService } from './service/schema.service';
 import { ContentfulManagementService } from './service/contentful-management';
+import { DatabaseService } from '.';
 
 @Injectable()
 export class DiscontentedCli {
@@ -16,7 +17,8 @@ export class DiscontentedCli {
         private context : Context,
         private schemaService : SchemaService,
         private pullService : PullService,
-        private contentfulManagement : ContentfulManagementService
+        private contentfulManagement : ContentfulManagementService,
+        private db : DatabaseService
     ) {
     }
 
@@ -75,6 +77,7 @@ export class DiscontentedCli {
             import: params => this.import(params),
             serve: params => this.serve(params),
             config: params => this.showConfig(params),
+            dbtest: params => this.dbTest(params),
             'apply-migrations': params => this.applyMigrations(params)
         }
 
@@ -198,5 +201,10 @@ export class DiscontentedCli {
         console.log(JSON.stringify(this.context.definition, undefined, 2));
         console.log(`--`);
         console.log(`Config loaded from: ${this.configFile}`);
+    }
+
+    async dbTest(params : string[]) {
+        await this.db.test();
+        console.log(`DB connection test was successful`);
     }
 }
