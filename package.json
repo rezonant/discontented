@@ -32,7 +32,7 @@
     "@types/randomstring": "^1.1.6",
     "body-parser": "^1.19.0",
     "change-case": "^3.1.0",
-    "contentful-export": "^7.6.0",
+    "contentful-export": "7.6.0",
     "mkdirp": "^0.5.1",
     "node-fetch": "^2.6.0",
     "pg": "^8.6.0",
