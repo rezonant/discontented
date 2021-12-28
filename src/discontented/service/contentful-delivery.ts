@@ -51,9 +51,16 @@ export class ContentfulDeliveryService {
             await timeout(secondsRemaining * 1000 + jitter);
 
             state.retry += 1;
-            await this.request(method, url, body, state);
+            return await this.request(method, url, body, state);
+        } else if (response.status == 404) {
+            return null;
         } else if (response.status >= 400) {
-            throw response;
+            let body = await response.text();
+
+            console.error(`${method} ${url}: status ${response.status} ${response.statusText}`);
+            console.error(`    Body: ${body}`);
+
+            throw new Error(`${method} ${url}: status ${response.status} ${response.statusText}`);
         }
 
         // success
