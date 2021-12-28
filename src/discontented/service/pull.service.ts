@@ -53,7 +53,9 @@ export class PullService {
     async importEntry(entry: CfEntry) {
         if (!this.context.schema)
             throw new Error(`No schema loaded`);
-        
+
+        console.log(`Importing entry ${entry.sys.id}`);
+
         let migrator = new BatchImporter(this.context, this.context.schema, new OnlineContentfulLocator(this.contentfulManagement, this.contentfulDelivery));
         let sqlQueries = await migrator.generateBatchSql([entry]);
         

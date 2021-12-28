@@ -43,7 +43,7 @@ export class BatchImporter {
 
         this.data = new Map<string, RowUpdate[]>();
 
-        console.log(`[BatchImporter] Preparing entries...`);
+        console.log(`[BatchImporter] Preparing ${entries.length} entries...`);
 
         let done = 0;
         let total = entries.length;
