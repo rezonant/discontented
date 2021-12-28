@@ -8,8 +8,8 @@ export class OfflineContentfulLocator implements ContentfulLocator {
             this.entryMap.set(`${entry.sys.space.sys.id}/${entry.sys.id}`, entry);
         
         console.log(`[OfflineContentfulLocator] Generating ID mapping for assets...`);
-        for (let asset of this.store.publishedEntries)
-            this.entryMap.set(`${asset.sys.space.sys.id}/${asset.sys.id}`, asset);
+        for (let asset of this.store.assets)
+            this.assetMap.set(`${asset.sys.space.sys.id}/${asset.sys.id}`, asset);
             
         console.log(`[OfflineContentfulLocator] Done generating ID maps.`);
     }
