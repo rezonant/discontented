@@ -48,7 +48,7 @@ export class CfWebhookController {
 
         // The rest is for create/save/publish
 
-        if ([CF_TOPIC_ENTRY_AUTO_SAVE, CF_TOPIC_ENTRY_PUBLISH, CF_TOPIC_ENTRY_SAVE, CF_TOPIC_ENTRY_CREATE].includes(cfTopic)) {
+        if (![CF_TOPIC_ENTRY_AUTO_SAVE, CF_TOPIC_ENTRY_PUBLISH, CF_TOPIC_ENTRY_SAVE, CF_TOPIC_ENTRY_CREATE].includes(cfTopic)) {
             console.log(`Unhandled webhook topic: ${cfTopic}, skipping!`);
             return;
         }
