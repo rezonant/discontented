@@ -34,7 +34,8 @@ export class ContentfulManagementService {
             requestInit.body = bodyText;
         }
 
-        let response = await fetch(`${this.baseUrl}/${url.replace(/^\//g, '')}`, requestInit);
+        let fullUrl = `${this.baseUrl}/${url.replace(/^\//g, '')}`;
+        let response = await fetch(fullUrl, requestInit);
 
         if (response.status === 429) {
             if (state.retry > 10) {
@@ -51,6 +52,7 @@ export class ContentfulManagementService {
             state.retry += 1;
             await this.request(method, url, body, headers, state);
         } else if (response.status >= 400) {
+            console.log(`${method} ${fullUrl} => ${response.status} ${response.statusText} (!!)`);
             console.error(`Got bad response from Contentful: ${response.status} ${response.statusText}`);
             console.error(`JSON:`);
             console.error(await response.json());
@@ -58,6 +60,7 @@ export class ContentfulManagementService {
         }
 
         // success
+        console.log(`${method} ${fullUrl} => ${response.status} ${response.statusText}`);
         return await response.json();
     }
 
