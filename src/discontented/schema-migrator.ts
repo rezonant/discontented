@@ -101,7 +101,8 @@ export class SchemaMigrator {
                     + `    "order" INT DEFAULT 0,\n`
                     + `    "owner_cfid" VARCHAR(64),\n`
                     + `    "item_cfid" VARCHAR(64) UNIQUE\n`
-                    + `)`
+                    + `);\n`
+                    + `CREATE UNIQUE INDEX ${linkingTableName}_key ON ${linkingTableName} (owner_cfid, item_cfid)`
                 ;
                 skipColumn = true;
             } else {
@@ -208,15 +209,17 @@ export class SchemaMigrator {
      */
     migrate(oldSchema : CfStore, newSchema : CfStore): string {
 
-        if (!newSchema.dcf)
-            newSchema.dcf = {};
-
         let isFirstMigration = false;
 
         if (!oldSchema) {
             isFirstMigration = true;
-            oldSchema = { contentTypes: [], dcf: { hasLinkOrder: true } };
+            oldSchema = { contentTypes: [], dcf: { 
+                hasLinkOrder: true,
+                hasUniqueLinkIndices: true
+            } };
         }
+
+        newSchema.dcf = oldSchema?.dcf ?? {};
 
         let sql = '';
 
@@ -257,7 +260,31 @@ export class SchemaMigrator {
             }
 
             sql += `\n`;
-            newSchema.dcf.hasLinkOrder = true;
+        }
+
+        if (!oldSchema.dcf?.hasUniqueLinkIndices) {
+            sql += `\n`;
+            sql += `-- *************************************************************\n`;
+            sql += `-- *\n`;
+            sql += `-- * ADD UNIQUE INDICES TO EXISTING LINK TABLES\n`;
+            sql += `-- Discontented did not originally specify unique indices for its link tables.\n`;
+            sql += `-- This migration fixes that.\n`;
+            sql += `-- *\n`;
+            sql += `-- **\n`;
+
+            for (let type of oldSchema.contentTypes) {
+                let table = this.createTypeMap(type);
+
+                for (let field of type.fields) {
+                    if (field.type === 'Array' && field.items.type === 'Link') {
+                        let linkingTableName = `${table.tableName}_${this.context.transformIdentifier(field.id)}`
+
+                        sql += `CREATE UNIQUE INDEX ${linkingTableName}_key ON ${linkingTableName} (owner_cfid, item_cfid);\n`;
+                    }
+                }
+            }
+
+            sql += `\n`;
         }
 
         for (let newType of newSchema.contentTypes) {
