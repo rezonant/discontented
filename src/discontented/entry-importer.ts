@@ -109,10 +109,12 @@ export class EntryImporter {
                         let array = <CfLink[]>field;
 
                         if (array) {
+                            let order = 0;
                             for (let link of array) {
                                 let linkRowData = new Map<string, any>();
                                 linkRowData.set('owner_cfid', entry.sys.id);
                                 linkRowData.set('item_cfid', link.sys.id);
+                                linkRowData.set('order', order++);
 
                                 this.addRow(
                                     `${this.context.getTableNameForEntry(entry)}_${this.context.transformIdentifier(fieldDefinition.id)}`, 

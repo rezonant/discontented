@@ -233,6 +233,17 @@ export interface CfStore {
     roles? : any[]; // dont care
 
     entries? : CfEntry[];
+
+    dcf? : DcfFlags;
+}
+
+export interface DcfFlags {
+    /**
+     * Originally DCF linking tables did not have the `order` column.
+     * This flag is checked to determine if a migration needs to be made 
+     * to add them.
+     */
+    hasLinkOrder? : boolean;
 }
 
 export interface CfResourceQuery {

@@ -98,6 +98,7 @@ export class SchemaMigrator {
                 linkingTableName = `${table.tableName}_${this.context.transformIdentifier(field.id)}`
                 linkingTableDeclarationSql = 
                       `CREATE TABLE IF NOT EXISTS ${linkingTableName} (\n`
+                    + `    "order" INT DEFAULT 0,\n`
                     + `    "owner_cfid" VARCHAR(64),\n`
                     + `    "item_cfid" VARCHAR(64) UNIQUE\n`
                     + `)`
@@ -207,11 +208,14 @@ export class SchemaMigrator {
      */
     migrate(oldSchema : CfStore, newSchema : CfStore): string {
 
+        if (!newSchema.dcf)
+            newSchema.dcf = {};
+
         let isFirstMigration = false;
 
         if (!oldSchema) {
             isFirstMigration = true;
-            oldSchema = { contentTypes: [] };
+            oldSchema = { contentTypes: [], dcf: { hasLinkOrder: true } };
         }
 
         let sql = '';
@@ -227,6 +231,33 @@ export class SchemaMigrator {
             sql += `CREATE TABLE IF NOT EXISTS ${this.context.migrationTablePrefix}migrations (\n`
             sql += `    version VARCHAR(30) UNIQUE\n`;
             sql += `);\n`;
+        }
+
+        if (!oldSchema.dcf?.hasLinkOrder) {
+            sql += `\n`;
+            sql += `-- *************************************************************\n`;
+            sql += `-- *\n`;
+            sql += `-- * ADD ORDER COLUMN TO EXISTING LINK TABLES\n`;
+            sql += `-- Discontented did not originally specify 'order' columns on its link tables.\n`;
+            sql += `-- This migration fixes that.\n`;
+            sql += `-- *\n`;
+            sql += `-- **\n`;
+
+            for (let type of oldSchema.contentTypes) {
+                let table = this.createTypeMap(type);
+
+                for (let field of type.fields) {
+                    if (field.type === 'Array' && field.items.type === 'Link') {
+                        let linkingTableName = `${table.tableName}_${this.context.transformIdentifier(field.id)}`
+
+                        sql += `ALTER TABLE ${linkingTableName} ADD COLUMN "order" INT DEFAULT 0;\n`;
+                    }
+                }
+
+            }
+
+            sql += `\n`;
+            newSchema.dcf.hasLinkOrder = true;
         }
 
         for (let newType of newSchema.contentTypes) {
