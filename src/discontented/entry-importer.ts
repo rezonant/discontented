@@ -118,7 +118,11 @@ export class EntryImporter {
 
                                 this.addRow(
                                     `${this.context.getTableNameForEntry(entry)}_${this.context.transformIdentifier(fieldDefinition.id)}`, 
-                                    { onConflict: 'update', uniqueKey: 'item_cfid', data: linkRowData }
+                                    { 
+                                        onConflict: 'update', 
+                                        uniqueKey: ['owner_cfid', 'item_cfid'],
+                                        data: linkRowData 
+                                    }
                                 );
                             }
                         }

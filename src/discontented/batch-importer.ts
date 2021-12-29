@@ -83,6 +83,13 @@ export class BatchImporter {
                 for (let page = 0; page < pagesRequired; ++page) {
                     let offset = page * pageSize;
                     let rowsSubset = rows.slice(offset, offset + pageSize);
+                    let uniqueKeys : string[] = [];
+                    if (exemplarRow.uniqueKey) {
+                        if (Array.isArray(exemplarRow.uniqueKey))
+                            uniqueKeys = exemplarRow.uniqueKey;
+                        else
+                            uniqueKeys = [ exemplarRow.uniqueKey ];
+                    }
 
                     let query = 
                         `\n`
@@ -99,7 +106,7 @@ export class BatchImporter {
                                     .join(`,\n    `)}\n`
                         + `  )`)}`
                         + `\n`
-                        + `  ON CONFLICT (${exemplarRow.uniqueKey})\n`
+                        + `  ON CONFLICT (${uniqueKeys.join(', ')})\n`
                         + `  DO\n` 
                         + (exemplarRow.onConflict === 'update' ?
                         `    UPDATE SET\n`
