@@ -56,7 +56,12 @@ export class PullService {
 
         console.log(`Importing entry ${entry.sys.id}`);
 
-        let migrator = new BatchImporter(this.context, this.context.schema, new OnlineContentfulLocator(this.contentfulManagement, this.contentfulDelivery));
+        let migrator = new BatchImporter(
+            this.context, 
+            this.context.schema, 
+            new OnlineContentfulLocator(this.contentfulManagement, this.contentfulDelivery),
+            this.database
+        );
         let sqlQueries = await migrator.generateBatchSql([entry]);
         
         console.log(`Received updated data for entry ${entry.sys.id}`);
@@ -70,7 +75,12 @@ export class PullService {
     async importAll() {
         console.log(`Discontented: Exporting content from Contentful space '${this.context.definition.contentful.spaceId}'...`);
         let store = await this.contentfulManagement.fetchStore();
-        let importer = new BatchImporter(this.context, store, new OfflineContentfulLocator(store));
+        let importer = new BatchImporter(
+            this.context, 
+            store, 
+            new OfflineContentfulLocator(store),
+            this.database
+        );
 
         console.log(`Discontented: Creating SQL DML for ${store.entries.length} entries...`);
         let sqlCommands = await importer.generateBatchSql();

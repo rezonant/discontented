@@ -1,12 +1,14 @@
 import { Context, CfStore, CfEntry, CfLocalizedValue, CfLink } from "./common";
 import { ContentfulLocator } from "./asset-locator";
 import { RowUpdate } from "./row-update";
+import { DatabaseService } from ".";
 
 export class EntryImporter {
     constructor(
         readonly context : Context,
         readonly schema : CfStore,
-        readonly assetLocator : ContentfulLocator
+        readonly assetLocator : ContentfulLocator,
+        readonly database : DatabaseService
     ) {
     }
 
@@ -110,20 +112,42 @@ export class EntryImporter {
 
                         if (array) {
                             let order = 0;
+                            let survivors : string[] = [];
+                            let linkTableName = `${this.context.getTableNameForEntry(entry)}_${this.context.transformIdentifier(fieldDefinition.id)}`;
+
                             for (let link of array) {
                                 let linkRowData = new Map<string, any>();
                                 linkRowData.set('owner_cfid', entry.sys.id);
                                 linkRowData.set('item_cfid', link.sys.id);
                                 linkRowData.set('order', order++);
 
+                                survivors.push(link.sys.id);
                                 this.addRow(
-                                    `${this.context.getTableNameForEntry(entry)}_${this.context.transformIdentifier(fieldDefinition.id)}`, 
+                                    linkTableName, 
                                     { 
                                         onConflict: 'update', 
-                                        uniqueKey: ['owner_cfid', 'item_cfid'],
+                                        uniqueKey: ['owner_cfid', 'item_cfid'],//`${linkTableName}_key`,
                                         data: linkRowData 
                                     }
                                 );
+                            }
+
+                            // Delete any removed links 
+
+                            let deleteQuery = `
+                                DELETE FROM ${linkTableName} 
+                                WHERE 
+                                    owner_cfid = '${entry.sys.id}'
+                                    AND item_cfid NOT IN (${survivors.map(x => `'${x}'`).join(', ')})
+                            `;
+
+                            try {
+                                let result = await this.database.query(deleteQuery);
+                                if (result.rowCount > 0) {
+                                    console.log(`[EntryImporter] Dropped ${result.rowCount} removed links for entry ${entry.sys.id} in table ${linkTableName}`);
+                                }
+                            } catch (e) {
+                                console.error(`ERROR: While dropping removed links for entry ${entry.sys.id} in table ${linkTableName}: ${e.message} -- Query was: <<${deleteQuery}>>`);
                             }
                         }
                     } else {
@@ -168,7 +192,7 @@ export class EntryImporter {
 
         this.addRow(this.context.getTableNameForEntry(entry), {
             onConflict: 'update',
-            uniqueKey: 'cfid',
+            uniqueKey: ['cfid'],
             data: rowData
         });
 

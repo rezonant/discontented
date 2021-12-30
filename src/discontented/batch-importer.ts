@@ -3,12 +3,14 @@ import { EntryImporter } from "./entry-importer";
 import { RowUpdate } from "./row-update";
 import { OfflineContentfulLocator } from "./offline-asset-locator";
 import { ContentfulLocator } from "./asset-locator";
+import { DatabaseService } from ".";
 
 export class BatchImporter {
     constructor(
         readonly context : Context,
         readonly source : CfStore,
-        readonly locator : ContentfulLocator
+        readonly locator : ContentfulLocator,
+        readonly database : DatabaseService
     ) {
     }
 
@@ -28,7 +30,7 @@ export class BatchImporter {
 
     private async generateForEntry(latestEntry : CfEntry) {
         let publishedEntry = await this.locator.retrievePublishedEntry(latestEntry.sys.space.sys.id, latestEntry.sys.id);
-        let entryImporter = new EntryImporter(this.context, this.source, this.locator);
+        let entryImporter = new EntryImporter(this.context, this.source, this.locator, this.database);
         await entryImporter.generateData(publishedEntry, latestEntry);
 
         for (let tableName of entryImporter.data.keys()) 
@@ -83,13 +85,7 @@ export class BatchImporter {
                 for (let page = 0; page < pagesRequired; ++page) {
                     let offset = page * pageSize;
                     let rowsSubset = rows.slice(offset, offset + pageSize);
-                    let uniqueKeys : string[] = [];
-                    if (exemplarRow.uniqueKey) {
-                        if (Array.isArray(exemplarRow.uniqueKey))
-                            uniqueKeys = exemplarRow.uniqueKey;
-                        else
-                            uniqueKeys = [ exemplarRow.uniqueKey ];
-                    }
+                    let constraint = `(${exemplarRow.uniqueKey.join(', ')})`;
 
                     let query = 
                         `\n`
@@ -106,7 +102,7 @@ export class BatchImporter {
                                     .join(`,\n    `)}\n`
                         + `  )`)}`
                         + `\n`
-                        + `  ON CONFLICT (${uniqueKeys.join(', ')})\n`
+                        + `  ON CONFLICT ${constraint}\n`
                         + `  DO\n` 
                         + (exemplarRow.onConflict === 'update' ?
                         `    UPDATE SET\n`

@@ -100,7 +100,7 @@ export class SchemaMigrator {
                       `CREATE TABLE IF NOT EXISTS ${linkingTableName} (\n`
                     + `    "order" INT DEFAULT 0,\n`
                     + `    "owner_cfid" VARCHAR(64),\n`
-                    + `    "item_cfid" VARCHAR(64) UNIQUE\n`
+                    + `    "item_cfid" VARCHAR(64)\n`
                     + `);\n`
                     + `CREATE UNIQUE INDEX ${linkingTableName}_key ON ${linkingTableName} (owner_cfid, item_cfid)`
                 ;
@@ -215,7 +215,8 @@ export class SchemaMigrator {
             isFirstMigration = true;
             oldSchema = { contentTypes: [], dcf: { 
                 hasLinkOrder: true,
-                hasUniqueLinkIndices: true
+                hasUniqueLinkIndices: true,
+                hasBadLinkItemIds: false
             } };
         }
 
@@ -260,6 +261,7 @@ export class SchemaMigrator {
             }
 
             sql += `\n`;
+            newSchema.dcf.hasLinkOrder = true;
         }
 
         if (!oldSchema.dcf?.hasUniqueLinkIndices) {
@@ -285,6 +287,32 @@ export class SchemaMigrator {
             }
 
             sql += `\n`;
+            newSchema.dcf.hasUniqueLinkIndices = true;
+        }
+
+        if (oldSchema.dcf?.hasBadLinkItemIds !== false) {
+            sql += `\n`;
+            sql += `-- *************************************************************\n`;
+            sql += `-- *\n`;
+            sql += `-- * REMOVE INVALID UNIQUE CONSTRAINTS FROM EXISTING LINK TABLES\n`;
+            sql += `-- Discontented used to specify uniqueness on the item_cfid column of linking tables it managed.\n`;
+            sql += `-- Those constraints are incorrect. This migration removes them.\n`;
+            sql += `-- *\n`;
+            sql += `-- **\n`;
+            
+            for (let type of oldSchema.contentTypes) {
+                let table = this.createTypeMap(type);
+
+                for (let field of type.fields) {
+                    if (field.type === 'Array' && field.items.type === 'Link') {
+                        let linkingTableName = `${table.tableName}_${this.context.transformIdentifier(field.id)}`
+
+                        sql += `DO $$BEGIN ALTER TABLE ${linkingTableName} DROP CONSTRAINT ${linkingTableName.slice(0, 49)}_item_cfid_key; EXCEPTION WHEN undefined_object THEN NULL; END$$\n`;
+                    }
+                }
+            }
+
+            newSchema.dcf.hasBadLinkItemIds = false;
         }
 
         for (let newType of newSchema.contentTypes) {

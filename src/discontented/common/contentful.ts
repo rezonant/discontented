@@ -245,6 +245,7 @@ export interface DcfFlags {
      */
     hasLinkOrder? : boolean;
     hasUniqueLinkIndices? : boolean;
+    hasBadLinkItemIds? : boolean;
 }
 
 export interface CfResourceQuery {
