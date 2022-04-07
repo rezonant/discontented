@@ -15,6 +15,6 @@ export class OnlineContentfulLocator implements ContentfulLocator {
     }
 
     async retrieveAsset(spaceId: string, assetId: string): Promise<CfAsset> {
-        return await this.contentfulManagement.getAsset(spaceId, 'master', assetId);
+        return await this.contentfulManagement.getAsset(assetId);
     }
 }

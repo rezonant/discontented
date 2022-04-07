@@ -4,6 +4,7 @@ import { PullService } from "./pull.service";
 import { SchemaService } from "./schema.service";
 import { ContentfulManagementService } from "./contentful-management";
 import { ContentfulDeliveryService } from "./contentful-delivery";
+import { AssetUploader } from "./asset-uploader";
 
 @Module({
     providers: [
@@ -11,7 +12,8 @@ import { ContentfulDeliveryService } from "./contentful-delivery";
         ContentfulDeliveryService,
         SchemaService,
         PullService,
-        PushService
+        PushService,
+        AssetUploader
     ]
 })
 export class ServiceModule {

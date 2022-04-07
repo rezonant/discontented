@@ -6,6 +6,8 @@ import { OfflineContentfulLocator } from "../offline-asset-locator";
 import { ContentfulManagementService } from "./contentful-management";
 import { OnlineContentfulLocator } from "../online-asset-locator";
 import { ContentfulDeliveryService } from "./contentful-delivery";
+import { AssetUploader } from "./asset-uploader";
+import { CfStore, CfAsset } from "../common";
 
 @Injectable()
 export class PullService {
@@ -13,7 +15,8 @@ export class PullService {
         private context : Context,
         private database : DatabaseService,
         private contentfulManagement : ContentfulManagementService,
-        private contentfulDelivery : ContentfulDeliveryService
+        private contentfulDelivery : ContentfulDeliveryService,
+        private assetUploader : AssetUploader
     ) {
 
     }
@@ -66,15 +69,39 @@ export class PullService {
         
         console.log(`Received updated data for entry ${entry.sys.id}`);
 
-        for (let sqlQuery of sqlQueries)
-            await this.database.query(sqlQuery);
+        for (let sqlQuery of sqlQueries) {
+            try {
+                await this.database.query(sqlQuery);
+            } catch (e) {
+                console.error(`Caught error while running query '${sqlQuery}':`);
+                console.error(e);
+                
+                throw new Error(`Caught error while running query '${sqlQuery}': ${e.message}`);
+            }
+        }
 
         console.log(`Saved data successfully.`);
     }
 
     async importAll() {
-        console.log(`Discontented: Exporting content from Contentful space '${this.context.definition.contentful.spaceId}'...`);
         let store = await this.contentfulManagement.fetchStore();
+        await this.importAllEntriesFromStore(store);
+        await this.importAllAssetsFromStore(store);
+    }
+
+    async importAllEntries() {
+        let store = await this.contentfulManagement.fetchStore();
+        await this.importAllEntriesFromStore(store);
+    }
+
+    async importAllAssets() {
+        let store = await this.contentfulManagement.fetchStore(false);
+        await this.importAllAssetsFromStore(store);
+    }
+
+    private async importAllEntriesFromStore(store : CfStore) {
+        console.log(`[Entries] Importing ${store.entries.length} entries...`);
+
         let importer = new BatchImporter(
             this.context, 
             store, 
@@ -82,13 +109,12 @@ export class PullService {
             this.database
         );
 
-        console.log(`Discontented: Creating SQL DML for ${store.entries.length} entries...`);
+        console.log(`[Entries] Generating SQL...`);
         let sqlCommands = await importer.generateBatchSql();
 
-        console.log(`Importing into database [${sqlCommands.length} queries]...`);
-
+        console.log(`[Entries] Importing [${sqlCommands.length} queries]...`);
         let periodicUpdate = setInterval(() => {
-            console.log(`[Inserting] ${Math.round(count / sqlCommands.length * 100)}%  ${count} / ${sqlCommands.length}`);
+            console.log(`[Entries] ${Math.round(count / sqlCommands.length * 100)}%  ${count} / ${sqlCommands.length}`);
         }, 10*1000);
 
         let count = 0;
@@ -110,6 +136,36 @@ export class PullService {
             clearInterval(periodicUpdate);
         }
 
-        console.log(`Done!`);
+        console.log(`Done inserting content entries.`);
+    }
+
+    async importAsset(asset : CfAsset) {
+        await this.assetUploader.transfer(asset);
+    }
+
+    private async importAllAssetsFromStore(store : CfStore) {
+        if (!this.context.definition.assetBuckets || this.context.definition.assetBuckets.length === 0) {
+            console.log(`[Assets] Skipping asset transfer: No buckets defined!`);
+            return;
+        }
+
+        console.log(`[Assets] Transferring ${store.assets.length} assets...`);
+        let count = store.assets.length;
+        let done = 0;
+
+        let progress = setInterval(() => {
+            console.log(`[Assets] ${Math.round(done / count * 100)}%  ${done} / ${count}`);
+        }, 5*1000);
+
+        try {
+            for (let asset of store.assets) {
+                await this.importAsset(asset);
+                done += 1;
+            }
+        } finally {
+            clearInterval(progress);
+        }
+
+        console.log(`[Assets] Finished`);
     }
 }

@@ -216,7 +216,8 @@ export class SchemaMigrator {
             oldSchema = { contentTypes: [], dcf: { 
                 hasLinkOrder: true,
                 hasUniqueLinkIndices: true,
-                hasBadLinkItemIds: false
+                hasBadLinkItemIds: false,
+                hasLinkIdentities: true
             } };
         }
 
@@ -313,6 +314,30 @@ export class SchemaMigrator {
             }
 
             newSchema.dcf.hasBadLinkItemIds = false;
+        }
+
+        if (oldSchema.dcf?.hasLinkIdentities !== true) {
+            sql += `\n`;
+            sql += `-- *************************************************************\n`;
+            sql += `-- *\n`;
+            sql += `-- * ADD AUTO-GENERATED NUMERIC IDENTITIES TO LINK TABLES\n`;
+            sql += `-- Frameworks like ActiveRecord work better when a numeric ID is available.\n`;
+            sql += `-- *\n`;
+            sql += `-- **\n`;
+            
+            for (let type of oldSchema.contentTypes) {
+                let table = this.createTypeMap(type);
+
+                for (let field of type.fields) {
+                    if (field.type === 'Array' && field.items.type === 'Link') {
+                        let linkingTableName = `${table.tableName}_${this.context.transformIdentifier(field.id)}`
+
+                        sql += `ALTER TABLE ${linkingTableName} ADD "id" BIGSERIAL NOT NULL;\n`;
+                    }
+                }
+            }
+
+            newSchema.dcf.hasLinkIdentities = false;
         }
 
         for (let newType of newSchema.contentTypes) {

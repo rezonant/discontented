@@ -76,6 +76,8 @@ export class DiscontentedCli {
             migrate: params => this.migrate(params),
             export: params => this.export(params),
             import: params => this.import(params),
+            'import:assets': params => this.importAssets(params),
+            'import:entries': params => this.importEntries(params),
             serve: params => this.serve(params),
             config: params => this.showConfig(params),
             dbtest: params => this.dbTest(params),
@@ -168,6 +170,40 @@ export class DiscontentedCli {
      */
     async import(params : string[]) {
         await this.pullService.importAll();
+    }
+
+    /**
+     * Command: dcf import:entries
+     * @param params 
+     */
+    async importEntries(params : string[]) {
+        if (params.length === 0) {
+            await this.pullService.importAllEntries();
+            return;
+        }
+
+        for (let entryID of params) {
+            let entry = await this.contentfulManagement.getEntry(entryID);
+            console.log(`Importing entry ${entryID}...`);
+            await this.pullService.importEntry(entry);
+        }
+    }
+
+    /**
+     * Command: dcf import:assets
+     * @param params 
+     */
+    async importAssets(params : string[]) {
+        if (params.length === 0) {
+            await this.pullService.importAllAssets();
+            return;
+        }
+
+        for (let assetID of params) {
+            let asset = await this.contentfulManagement.getAsset(assetID);
+            console.log(`Importing asset ${assetID}...`);
+            await this.pullService.importAsset(asset);
+        }
     }
 
     /**

@@ -23,6 +23,15 @@ export interface ContentfulOptions {
     environmentId? : string;
     managementToken : string;
     deliveryToken : string;
+    useCache? : boolean;
+}
+
+export interface Bucket {
+    endpoint : string;
+    bucket : string;
+    region : string;
+    accessKey : string;
+    accessSecret : string;
 }
 
 export interface Options {
@@ -32,6 +41,7 @@ export interface Options {
     defaultLocalization? : string;
     schemaFile? : string;
     migrationDirectory? : string;
+    assetBuckets? : Bucket[];
 
     contentful? : ContentfulOptions;
     dbConnection? : pg.ClientConfig;

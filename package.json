@@ -30,6 +30,7 @@
     "@types/mkdirp": "^0.5.2",
     "@types/node-fetch": "^2.5.0",
     "@types/randomstring": "^1.1.6",
+    "aws-sdk": "^2.1048.0",
     "body-parser": "^1.19.0",
     "change-case": "^3.1.0",
     "contentful-export": "7.6.0",

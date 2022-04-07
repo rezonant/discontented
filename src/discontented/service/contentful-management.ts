@@ -5,7 +5,7 @@ import contentfulExport from 'contentful-export';
 import fetch, { HeadersInit } from 'node-fetch';
 import { RequestInit, BodyInit } from 'node-fetch';
 import { ContentfulDeliveryService } from "./contentful-delivery";
-
+import * as fs from 'fs';
 
 @Injectable()
 export class ContentfulManagementService {
@@ -149,8 +149,25 @@ export class ContentfulManagementService {
         return result;
     }
 
-    async fetchStore(): Promise<CfStore> {
-        console.log(`Fetching data from Contentful...`);
+    getCacheFileForStore(store : CfStore) {
+        return `${this.context.definition.contentful.spaceId}.dcfcache.json`;
+    }
+
+    async saveToCache(store : CfStore) {
+        await fs.promises.writeFile(
+            this.getCacheFileForStore(store),
+            JSON.stringify(store, undefined, 2)
+        );
+    }
+
+    async fetchStore(includeEntries = true): Promise<CfStore> {
+        let cacheFile = `${this.context.definition.contentful.spaceId}.dcfcache.json`;
+        if (this.context.definition.contentful.useCache && fs.existsSync(cacheFile)) {
+            console.log(`[Store] Using cached store from ${cacheFile} (set contentful.useCache to false to disable)`);
+            return JSON.parse((await fs.promises.readFile(cacheFile)).toString('utf-8'));
+        }
+
+        console.log(`[Store] Exporting space '${this.context.definition.contentful.spaceId}'...`);
 
         let result : CfStore = this.context.schema;
 
@@ -166,9 +183,14 @@ export class ContentfulManagementService {
 
         //result.snapshots = await this.fetchAllSnapshots(result);
 
-        console.log(`Fetching all published entries...`);
-        result.publishedEntries = await this.contentfulDelivery.fetchAllPublishedEntries();
-        console.log(` - Fetched ${result.publishedEntries.length} published entries`);
+        if (includeEntries) {
+            console.log(`[Store] Fetching all published entries...`);
+            result.publishedEntries = await this.contentfulDelivery.fetchAllPublishedEntries();
+            console.log(`[Store] Fetched ${result.publishedEntries.length} published entries`);
+        }
+        
+        console.log(`[Store] Saving store to cache as ${cacheFile}`);
+        await this.saveToCache(result);
 
         return result;
     }
@@ -280,8 +302,8 @@ export class ContentfulManagementService {
         });
     }
 
-    async getAsset(spaceId : string, envId : string, assetId : string) {
-        return await this.get<CfAsset>(`/spaces/${spaceId}/environments/${envId}/assets/${assetId}`)
+    async getAsset(assetId : string) {
+        return await this.get<CfAsset>(`/spaces/${this.spaceId}/environments/${this.environmentId}/assets/${assetId}`)
     }
 
     async getAssets(spaceId : string, envId : string, query : CfAssetQuery) {
