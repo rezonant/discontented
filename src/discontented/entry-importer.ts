@@ -81,8 +81,7 @@ export class EntryImporter {
                             console.log(JSON.stringify(link));
                             console.log(JSON.stringify(fieldDefinition));
 
-                            throw new Error('bad');
-                            
+                            throw new Error(`Failure: No 'sys' object on link! Link was: '${JSON.stringify(link)}'`);
                         }
 
                         if (link) {
