@@ -6,6 +6,7 @@ import fetch, { HeadersInit } from 'node-fetch';
 import { RequestInit, BodyInit } from 'node-fetch';
 import { ContentfulDeliveryService } from "./contentful-delivery";
 import * as fs from 'fs';
+import BigJson from 'big-json';
 
 @Injectable()
 export class ContentfulManagementService {
@@ -156,17 +157,37 @@ export class ContentfulManagementService {
     }
 
     async saveToCache(store : CfStore) {
-        await fs.promises.writeFile(
-            this.getCacheFileForStore(store),
-            JSON.stringify(store, undefined, 2)
-        );
+        await new Promise<void>((resolve, reject) => {
+            try {
+                let stream: fs.ReadStream = BigJson.createStringifyStream({ body: store });
+                let file = fs.createWriteStream(this.getCacheFileForStore(store));
+                stream.pipe(file);
+
+                file.on('close', () => resolve());
+                file.on('error', err => reject(err));
+            } catch (e) {
+                console.error(`ERROR: Failed to write to cache!`);
+                console.error(e);
+                console.error(`...Writing the cache file will be skipped!`);
+                resolve();
+            }
+        });
     }
 
     async fetchStore(includeEntries = true): Promise<CfStore> {
         let cacheFile = `${this.context.definition.contentful.spaceId}.dcfcache.json`;
         if (this.context.definition.contentful.useCache && fs.existsSync(cacheFile)) {
             console.log(`[Store] Using cached store from ${cacheFile} (set contentful.useCache to false to disable)`);
-            return JSON.parse((await fs.promises.readFile(cacheFile)).toString('utf-8'));
+            let store: CfStore = await new Promise((resolve, reject) => {
+                let file = fs.createReadStream(cacheFile);
+                let stream: fs.WriteStream = BigJson.createParseStream();
+
+                stream.on('data', pojo => resolve(pojo));
+                stream.on('error', err => reject(err));
+    
+                file.pipe(stream);
+            });
+            return store;
         }
 
         console.log(`[Store] Exporting space '${this.context.definition.contentful.spaceId}'...`);
