@@ -50,7 +50,9 @@ export class ContentfulManagementService {
             await timeout(secondsRemaining * 1000 + jitter);
 
             state.retry += 1;
-            await this.request(method, url, body, headers, state);
+            return await this.request(method, url, body, headers, state);
+        } else if (response.status === 404) {
+            return null;
         } else if (response.status >= 400) {
             console.log(`${method} ${fullUrl} => ${response.status} ${response.statusText} (!!)`);
             console.error(`Got bad response from Contentful: ${response.status} ${response.statusText}`);
