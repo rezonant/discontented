@@ -116,20 +116,39 @@ export class AssetUploader {
         let urlObj = new URL(url);
         let objectKey = `${urlObj.pathname.slice(1)}`;
 
+        function sleep(time) {
+            return new Promise<void>(resolve => setTimeout(() => resolve(), time));
+        }
+
         function download() {
             if (downloadPromise)
                 return downloadPromise;
 
             return downloadPromise = new Promise(async (resolve, reject) => {
-                try {
-                    let response = await fetch(url);
-                    let arrayBuffer = await response.arrayBuffer();
-                    resolve({ buffer: Buffer.from(arrayBuffer), contentType: response.headers.get('content-type') });
-                } catch (e) {
-                    console.error(`ERROR: While downloading asset ${asset.sys.id}: ${e.message}`);
-                    console.error(e);
-                    reject(e);
+                let attempt = 0;
+                let maxAttempts = 5;
+
+                while (attempt <= maxAttempts) {
+                    try {
+                        if (attempt > 0)
+                            console.log(`Attempting to download '${url}' again (attempt number #${attempt + 1})`);
+                        let response = await fetch(url);
+                        let arrayBuffer = await response.arrayBuffer();
+                        resolve({ buffer: Buffer.from(arrayBuffer), contentType: response.headers.get('content-type') });
+                        return;
+                    } catch (e) {
+                        console.error(`ERROR: While downloading asset ${asset.sys.id}: ${e.message}`);
+                        attempt += 1;
+
+                        if (attempt <= maxAttempts)
+                            console.error(`       Waiting 5 seconds before trying again`);
+                        
+                        console.error(e);
+                        await sleep(5000);
+                    }
                 }
+
+                reject(new Error(`Failed to download file '${url}' after ${maxAttempts}!`));
             });
         }
 
@@ -137,23 +156,42 @@ export class AssetUploader {
             if (await this.bucketHasObject(bucket, objectKey))
                 return;
 
-            let file = await download();
-
+            let file: DownloadedFile;
             try {
-                await this.s3ForBucket(bucket)
-                    .putObject({
-                        Bucket: bucket.bucket,
-                        Body: file.buffer,
-                        Key: objectKey,
-                        ContentType: file.contentType
-                    })
-                    .promise()
-                ;
+                file = await download();
             } catch (e) {
-                console.error(`ERROR: While uploading asset ${asset.sys.id} to bucket ${bucket.bucket}: ${e.message}`);
-                console.error(e);
-                throw e;
+                console.error(`Failed to download URL '${url}'! This will be skipped!`);
+                return;
             }
+
+            let attempt = 0;
+            let maxAttempts = 5;
+
+            while (attempt <= maxAttempts) {
+                try {
+                    await this.s3ForBucket(bucket)
+                        .putObject({
+                            Bucket: bucket.bucket,
+                            Body: file.buffer,
+                            Key: objectKey,
+                            ContentType: file.contentType
+                        })
+                        .promise()
+                    ;
+                    return;
+                } catch (e) {
+                    console.error(`ERROR: While uploading asset ${asset.sys.id} to bucket ${bucket.bucket} (attempt ${attempt+1}): ${e.message}`);
+                    attempt += 1;
+
+                    if (attempt <= maxAttempts)
+                        console.error(`       Waiting 5 seconds before trying again for attempt ${attempt+1}`);
+                    
+                    sleep(5000);
+                }
+            }
+
+            console.error(`ERROR: Failed to upload asset ${asset.sys.id} to bucket ${bucket.bucket} after ${maxAttempts} attempts!`);
+            console.error(`       It will be skipped for now.`);
         }));
     }
 }
