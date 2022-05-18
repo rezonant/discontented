@@ -219,6 +219,15 @@ export interface CfSnapshot {
 
 export interface CfEntry extends CfSpaceResource, CfEntryDefinition {
     sys : CfEntrySys;
+    /**
+     * This entry was received by the webhook system
+     */
+    __webhook?: boolean;
+
+    /**
+     * This entry was received by a PUBLISH webhook event.
+     */
+    __published?: boolean;
 }
 
 export interface CfStore {

@@ -37,33 +37,38 @@ export class ContentfulManagementService {
 
         let fullUrl = `${this.baseUrl}/${url.replace(/^\//g, '')}`;
         let response = await fetch(fullUrl, requestInit);
+        let maxRetries = 30;
+        let additionalDelay = 1000;
 
         if (response.status === 429) {
-            if (state.retry > 10) {
-                console.error(`Contentful: ${method} ${url}: Too many retries (${state.retry})`);
-                throw new Error(`Contentful: ${method} ${url}: Too many retries (${state.retry})`);
+            if (state.retry > maxRetries) {
+                console.error(`ERROR: [Contentful CMA] ${method} ${url}: Too many retries (${state.retry})`);
+                throw new Error(`[Contentful CMA] ${method} ${url}: Too many retries (${state.retry})`);
+            } else {
+                console.log(`[Contentful CMA] ${method} ${url}: Rate Limit on ${state.retry + 1} / ${maxRetries}`);
             }
 
             // Wait until Contentful is ready...
 
             let secondsRemaining = parseInt(response.headers.get('X-Contentful-RateLimit-Second-Remaining'));
             let jitter = Math.floor(secondsRemaining * 0.1 * Math.random() * 1000);
-            await timeout(secondsRemaining * 1000 + jitter);
+            await timeout(secondsRemaining * 1000 + jitter + additionalDelay);
 
             state.retry += 1;
             return await this.request(method, url, body, headers, state);
         } else if (response.status === 404) {
             return null;
         } else if (response.status >= 400) {
-            console.log(`${method} ${fullUrl} => ${response.status} ${response.statusText} (!!)`);
-            console.error(`Got bad response from Contentful: ${response.status} ${response.statusText}`);
-            console.error(`JSON:`);
-            console.error(await response.json());
-            throw response;
+            let body = await response.text();
+
+            console.error(`ERROR: [Contentful CMA] ${method} ${fullUrl} => ${response.status} ${response.statusText} (!!)`);
+            console.error(`[Contentful CMA] Body: ${body}`);
+
+            throw new Error(`[Contentful CMA] ${method} ${url}: status ${response.status} ${response.statusText}`);
         }
 
         // success
-        console.log(`${method} ${fullUrl} => ${response.status} ${response.statusText}`);
+        console.log(`[Contentful CMA] ${method} ${fullUrl} => ${response.status} ${response.statusText}`);
         return await response.json();
     }
 

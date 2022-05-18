@@ -29,7 +29,29 @@ export class BatchImporter {
     }
 
     private async generateForEntry(latestEntry : CfEntry) {
-        let publishedEntry = await this.locator.retrievePublishedEntry(latestEntry.sys.space.sys.id, latestEntry.sys.id);
+        let publishedEntry: CfEntry;
+        
+        // If the __published flag is set on this entry, it means this entry was obtained via a Publish
+        // webhook event. This flag is added by the Webhook handler (webhook-controller.ts). 
+        // Such an entry object is already up to date and does not require us to fetch the 
+        // latest published entry. If we were to fetch the latest published entry, it may be stale compared
+        // to what we already have, which would result in missed updates.
+
+        if (latestEntry.__webhook && latestEntry.__published) {
+            publishedEntry = latestEntry;
+        } else {
+            publishedEntry = await this.locator.retrievePublishedEntry(latestEntry.sys.space.sys.id, latestEntry.sys.id);
+
+            if (latestEntry.__webhook && publishedEntry) {
+                // This IS a webhook event, but it is not a publish event.
+                // If there is a published entry from CDN, then we must skip processing this webhook
+                // to avoid overlapping with publish events.
+                // We still need to process this event if we are NOT in a webhook state to ensure we save 
+                // the entry at all during a full sync.
+                return;
+            }
+        }
+
         let entryImporter = new EntryImporter(this.context, this.source, this.locator, this.database);
         await entryImporter.generateData(publishedEntry, latestEntry);
 
@@ -61,8 +83,6 @@ export class BatchImporter {
         } finally {
             clearInterval(periodicUpdate);
         }
-
-        console.log(`[BatchImporter] Generating SQL...`);
 
         done = 0;
         total = this.data.size;
@@ -115,12 +135,6 @@ export class BatchImporter {
                     
                     sql.push(query);
                     done += 1
-                    
-                    // if (tableName === 'discontented_productions') {
-                    //     console.log(query);
-                    //     process.exit(1);
-                    // }
-                    
                 }
 
             }

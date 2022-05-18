@@ -26,7 +26,7 @@ export class SchemaService {
 
         let migrator = new SchemaMigrator(this.context);
 
-        console.log(`Generating SQL schema...`);
+        console.log(`[Schema] Generating SQL schema...`);
         let sql = await migrator.migrate(oldSchema, newSchema);
 
         if (sql) {

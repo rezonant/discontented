@@ -36,19 +36,24 @@ export class ContentfulDeliveryService {
             url += `?access_token=${this.deliveryToken}`;
         }
         
-        let response = await fetch(`${this.baseUrl}/${url.replace(/^\//g, '')}`, requestInit);
+        let fullUrl = `${this.baseUrl}/${url.replace(/^\//g, '')}`;
+        let response = await fetch(fullUrl, requestInit);
+        let maxRetries = 30;
+        let additionalDelay = 1000;
 
         if (response.status === 429) {
-            if (state.retry > 10) {
-                console.error(`Contentful: ${method} ${url}: Too many retries (${state.retry})`);
-                throw new Error(`Contentful: ${method} ${url}: Too many retries (${state.retry})`);
+            if (state.retry > maxRetries) {
+                console.error(`ERROR: [Contentful CDA] ${method} ${url}: Too many retries (${state.retry})`);
+                throw new Error(`[Contentful CDA] ${method} ${url}: Too many retries (${state.retry})`);
+            } else {
+                console.log(`[Contentful CDA] ${method} ${url}: 429 on ${state.retry + 1} / ${maxRetries}`);
             }
 
             // Wait until Contentful is ready...
 
             let secondsRemaining = parseInt(response.headers.get('X-Contentful-RateLimit-Second-Remaining'));
             let jitter = Math.floor(secondsRemaining * 0.1 * Math.random() * 1000);
-            await timeout(secondsRemaining * 1000 + jitter);
+            await timeout(secondsRemaining * 1000 + jitter + additionalDelay);
 
             state.retry += 1;
             return await this.request(method, url, body, state);
@@ -57,13 +62,14 @@ export class ContentfulDeliveryService {
         } else if (response.status >= 400) {
             let body = await response.text();
 
-            console.error(`${method} ${url}: status ${response.status} ${response.statusText}`);
-            console.error(`    Body: ${body}`);
+            console.error(`ERROR: [Contentful CDA] ${method} ${fullUrl} => ${response.status} ${response.statusText} (!!)`);
+            console.error(`[Contentful CDA] Body: ${body}`);
 
-            throw new Error(`${method} ${url}: status ${response.status} ${response.statusText}`);
+            throw new Error(`[Contentful CDA] ${method} ${url}: status ${response.status} ${response.statusText}`);
         }
 
         // success
+        console.log(`[Contentful CDA] ${method} ${fullUrl} => ${response.status} ${response.statusText}`);
         return await response.json();
     }
 

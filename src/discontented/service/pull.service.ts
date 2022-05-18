@@ -67,10 +67,11 @@ export class PullService {
         );
         let sqlQueries = await migrator.generateBatchSql([entry]);
         
-        console.log(`Received updated data for entry ${entry.sys.id}`);
+        console.log(`Received updated data for entry ${entry.sys.id} [${sqlQueries.length} queries]`);
 
         for (let sqlQuery of sqlQueries) {
             try {
+                console.log(`Running SQL: ${sqlQuery}`);
                 await this.database.query(sqlQuery);
             } catch (e) {
                 console.error(`Caught error while running query '${sqlQuery}':`);

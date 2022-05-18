@@ -26,11 +26,12 @@ export class EntryImporter {
         rows.push(row);
     }
 
-    async generateData(entry : CfEntry, latestEntry : CfEntry) {
+    async generateData(publishedEntry : CfEntry, latestEntry : CfEntry) {
 
         let published = true;
+        let entry = publishedEntry;
 
-        if (!entry) {
+        if (!publishedEntry) {
             published = false;
             entry = latestEntry;
         }

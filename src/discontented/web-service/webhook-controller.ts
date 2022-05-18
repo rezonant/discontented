@@ -62,6 +62,15 @@ export class CfWebhookController {
             });
         }
         
+        // If this is a publish event, then the entry that was sent to us is already up to date.
+        // We should avoid pulling the latest published entry from the Delivery API, as the Delivery API
+        // may have stale information since we are processing this so close to the change at Contentful.
+
+        entry.__webhook = true;
+        
+        if (cfTopic === CF_TOPIC_ENTRY_PUBLISH)
+            entry.__published = true;
+
         try {
             await this.pullService.importEntry(entry);
         } catch (e) {
