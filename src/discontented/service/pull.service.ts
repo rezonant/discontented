@@ -71,7 +71,8 @@ export class PullService {
 
         for (let sqlQuery of sqlQueries) {
             try {
-                console.log(`Running SQL: ${sqlQuery}`);
+                if (this.context.definition.printSqlQueries)
+                    console.log(`Running SQL: ${sqlQuery}`);
                 await this.database.query(sqlQuery);
             } catch (e) {
                 console.error(`Caught error while running query '${sqlQuery}':`);

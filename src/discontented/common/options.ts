@@ -45,6 +45,7 @@ export interface Options {
 
     contentful? : ContentfulOptions;
     dbConnection? : pg.ClientConfig;
+    printSqlQueries? : boolean;
 
     transformIdentifier? : (id : string) => string;
     deriveTableNameFromContentfulType? : (id : string) => string;
